@@ -5,7 +5,7 @@ import { useAnimations, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useRapier, type RapierCollider, type RapierRigidBody } from '@react-three/rapier';
 import { useEffect, useMemo, useRef } from 'react';
-import { Group, MathUtils, Vector3, type Mesh } from 'three';
+import { DoubleSide, FrontSide, Group, MathUtils, Vector3, type Mesh, type MeshStandardMaterial } from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { getGame } from '../game/GameState';
 import { GROUPS } from '../physics/CollisionLayers';
@@ -17,6 +17,21 @@ import { playerState } from './playerState';
 
 const HALF = character.height / 2 - MOVE.capsuleRadius;   // capsule half-height (cylinder part)
 const CENTER_Y = HALF + MOVE.capsuleRadius;               // capsule centre above the feet
+
+/* MPFB exports every material as alpha-blended + double-sided. In real time that causes sorting glitches and doubles
+   the fragment work: skin/clothes/eyes become opaque front-faced, hair/brows/lashes become alpha-tested cards. */
+const CARD = /(short|hair|eyebrow|eyelash)/i;
+function fixMaterial(mesh: Mesh) {
+  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  for (const m of mats as MeshStandardMaterial[]) {
+    const card = CARD.test(m.name);
+    m.transparent = false; m.depthWrite = true;
+    m.alphaTest = card ? 0.5 : 0;
+    m.side = card ? DoubleSide : FrontSide;
+    if (card) mesh.castShadow = false;
+    m.needsUpdate = true;
+  }
+}
 
 type KCC = ReturnType<ReturnType<typeof useRapier>['world']['createCharacterController']>;
 
@@ -33,7 +48,7 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number] }) {
     const m = cloneSkinned(gltf.scene) as Group;
     m.traverse((o) => {
       const mesh = o as Mesh & { isSkinnedMesh?: boolean };
-      if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false; }
+      if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false; fixMaterial(mesh); }
     });
     return m;
   }, [gltf.scene]);

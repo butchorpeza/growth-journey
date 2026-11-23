@@ -13,10 +13,23 @@ chapters, with the outfit evolving:
 
 Outfits come from swappable clothing meshes or material variants, not four separate models.
 
-## Current state
-- The prototype uses `public/models/characters/temp-soldier.glb`. This is the three.js example "Soldier", a Mixamo character with Mixamo rig and Idle/Walk/Run clips.
-- It is **temporary** and labelled as such in the HUD. It has no jump, fall, interact or turn clips. The controller maps those states to idle until the final character arrives.
-- The two `.blend` files in Downloads (Elias III, Kaspar II) are clothing-store scenes, not characters.
+## Current state (2026-11-23)
+- **Built:** `public/models/characters/player-survival.glb`, 1.85 MB.
+  - Made with MPFB2 (CC0), using `scripts/blender/build_character.py`.
+  - Adult man about 1.71 m tall, around 30 years old, with an Asian/Filipino build.
+  - Young-Asian-male skin tinted warm tan, brown high-poly eyes, eyebrow006, short02 hair in dark brown.
+  - **Chapter 01 outfit:** blue work shirt and grey jeans (`male_casualsuit01`) with `shoes06`.
+  - About 70k triangles. Textures are 2K WebP, geometry is meshopt-compressed.
+  - Skeleton: MPFB's **Mixamo** rig (52 bones, `mixamorig:*` names).
+  - Preview renders: `docs/images/character-survival-front.png`, `character-survival-face.png`.
+- **Interim animation:** Idle/Walk/Run from the three.js Mixamo sample, retargeted when the game loads by `src/player/retargetClips.ts`.
+  - It uses direction-based retargeting: every frame, each bone is turned to point where the source bone points, and the hips also match the left–right axis.
+  - Fingers keep the character's relaxed rest pose.
+  - Copying rotations (local or world) was tried first and failed: twisted limbs, stretched hands. The two rigs differ in axes, units, bone rolls and rest pose (T vs A).
+  - Result: `docs/images/character-ingame-poses.png`.
+  - Jump, fall, land and interact fall back to idle until the full clip set arrives.
+- **New Era outfit:** `--outfit new-era` builds the elegant suit on the same body and skeleton.
+- The temporary Soldier GLB is now only an animation *source*. Its mesh is no longer shown.
 
 ## Recommended pipeline (legally clean, practical in three.js)
 

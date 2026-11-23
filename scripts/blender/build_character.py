@@ -18,6 +18,11 @@ ap.add_argument("--packs", required=True)
 ap.add_argument("--out", required=True)
 ap.add_argument("--outfit", default="survival")
 ap.add_argument("--render", action="store_true")
+ap.add_argument("--clothes", default="", help="comma-separated clothes folder names, overrides the outfit preset")
+ap.add_argument("--hair", default="short02")
+ap.add_argument("--skin", default="young_asian_male")
+ap.add_argument("--eyebrows", default="eyebrow006")
+ap.add_argument("--hdri", default="assets-src/survival/polyhaven/hdris/farmland_overcast/farmland_overcast_2k.hdr")
 ap.add_argument("--list", action="store_true", help="only list installed assets")
 args = ap.parse_args(argv)
 os.makedirs(args.out, exist_ok=True)
@@ -62,7 +67,7 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 
 # ---------- 3. body: adult man, realistic proportions ----------
 macros = TargetService.get_default_macro_info_dict()
-macros.update({"gender": 1.0, "age": 0.52, "muscle": 0.58, "weight": 0.48, "proportions": 0.62, "height": 0.56,
+macros.update({"gender": 1.0, "age": 0.6, "muscle": 0.62, "weight": 0.55, "proportions": 0.72, "height": 0.55,
                "race": {"asian": 0.72, "caucasian": 0.2, "african": 0.08}})
 basemesh = HumanService.create_human(mask_helpers=True, detailed_helpers=False, extra_vertex_groups=True,
                                      feet_on_ground=True, scale=0.1, macro_detail_dict=macros)
@@ -70,7 +75,7 @@ basemesh.name = "Body"
 log("body verts", len(basemesh.data.vertices))
 
 # ---------- 4. rig first, so everything added later is skinned to it ----------
-rig = HumanService.add_builtin_rig(basemesh, "standard.mixamo", import_weights=True)
+rig = HumanService.add_builtin_rig(basemesh, "mixamo", import_weights=True)
 rig = rig or next(o for o in bpy.data.objects if o.type == "ARMATURE")
 rig.name = "Armature"
 log("rig bones", len(rig.data.bones))
@@ -83,7 +88,7 @@ def first(*patterns):
             return hits[0]
     return None
 
-skin = first("skins/*young*asian*male*/*.mhmat", "skins/*asian*male*/*.mhmat", "skins/*male*/*.mhmat", "skins/**/*.mhmat")
+skin = first(f"skins/{args.skin}/*.mhmat")
 log("skin", skin)
 if skin:
     HumanService.set_character_skin(skin, basemesh, skin_type="GAMEENGINE", material_instances=False)
@@ -95,23 +100,57 @@ def add(kind, path, asset_type):
     log("added", kind, os.path.relpath(path, user_data))
     return obj
 
-add("eyes", first("eyes/*brown*/*.mhclo", "eyes/**/*.mhclo"), "Eyes")
-add("eyebrows", first("eyebrows/*eyebrow001*/*.mhclo", "eyebrows/**/*.mhclo"), "Eyebrows")
+add("eyes", first("eyes/high-poly/*.mhclo"), "Eyes")
+add("eyebrows", first(f"eyebrows/{args.eyebrows}/*.mhclo"), "Eyebrows")
 add("eyelashes", first("eyelashes/*eyelashes01*/*.mhclo", "eyelashes/**/*.mhclo"), "Eyelashes")
-add("teeth", first("teeth/**/*.mhclo"), "Teeth")
+add("teeth", first("teeth/teeth_base/*.mhclo"), "Teeth")
 add("tongue", first("tongue/**/*.mhclo"), "Tongue")
 
 # ---------- 6. hair + outfit ----------
 OUTFITS = {
-    # chapter 01: worn, practical
-    "survival": ["clothes/*shirt*/*.mhclo", "clothes/*pants*/*.mhclo", "clothes/*shoe*/*.mhclo"],
-    # chapter 04: contemporary professional
-    "new-era": ["clothes/*suit*/*.mhclo", "clothes/*shoe*/*.mhclo"],
+    # chapter 01: worn, practical  ·  chapter 04: contemporary professional
+    "survival": ["male_casualsuit01", "shoes06"],
+    "new-era": ["male_elegantsuit01", "shoes02"],
 }
-hair = first("hair/*short*/*.mhclo", "hair/**/*.mhclo")
-add("hair", hair, "Hair")
-for pattern in OUTFITS.get(args.outfit, OUTFITS["survival"]):
-    add("clothes " + pattern, first(pattern), "Clothes")
+add("hair", first(f"hair/{args.hair}/*.mhclo"), "Hair")
+for name in ([c for c in args.clothes.split(",") if c] or OUTFITS.get(args.outfit, OUTFITS["survival"])):
+    add("clothes " + name, first(f"clothes/{name}/*.mhclo"), "Clothes")
+
+# ---------- 6b. glTF-ready materials ----------
+# MakeHuman 1.x coloured its shared light skin texture with a "litsphere"; glTF can't carry that, so each material
+# becomes: image -> Multiply(tint) -> Principled Base Color. Blender's glTF exporter writes the tint as
+# baseColorFactor. Alpha-tested cards (hair, brows, lashes) get their image alpha wired to Alpha.
+TINTS = {  # linear RGB multipliers, matched against the part after "Body." in the material name
+    "body": (0.60, 0.40, 0.27), "short": (0.07, 0.055, 0.045), "eyebrow": (0.12, 0.09, 0.07), "eyelash": (0.06, 0.05, 0.045),
+}
+ALPHA = ("short", "eyebrow", "eyelash", "hair")
+
+def tidy_material(mat):
+    nt = mat.node_tree
+    bsdf = next((n for n in nt.nodes if n.type == "BSDF_PRINCIPLED"), None)
+    img = next((n for n in nt.nodes if n.type == "TEX_IMAGE" and n.image and "normal" not in n.image.name.lower() and "_ao" not in n.image.name.lower()), None)
+    if not bsdf or not img:
+        return
+    for l in list(bsdf.inputs["Base Color"].links):
+        nt.links.remove(l)
+    part = mat.name.split(".", 1)[-1].lower()          # "Body.short02" -> "short02"
+    key = next((k for k in TINTS if part.startswith(k)), None)
+    if key:
+        mix = nt.nodes.new("ShaderNodeMix"); mix.data_type = "RGBA"; mix.blend_type = "MULTIPLY"
+        mix.inputs["Factor"].default_value = 1.0
+        mix.inputs[7].default_value = (*TINTS[key], 1.0)           # B (colour) input of the RGBA mix
+        nt.links.new(img.outputs["Color"], mix.inputs[6])          # A
+        nt.links.new(mix.outputs[2], bsdf.inputs["Base Color"])    # Result (RGBA)
+    else:
+        nt.links.new(img.outputs["Color"], bsdf.inputs["Base Color"])
+    if any(part.startswith(a) for a in ALPHA):
+        nt.links.new(img.outputs["Alpha"], bsdf.inputs["Alpha"])
+    bsdf.inputs["Roughness"].default_value = 0.52 if part == "body" else 0.85
+    log("material", mat.name, "tint", key)
+
+for m in bpy.data.materials:
+    if m.use_nodes:
+        tidy_material(m)
 
 # ---------- 7. report + optional preview render ----------
 tris = 0
@@ -127,12 +166,18 @@ if args.render:
     scene.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in {e.identifier for e in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items} else "BLENDER_EEVEE"
     scene.render.resolution_x, scene.render.resolution_y = 900, 1200
     world = bpy.data.worlds.new("w"); scene.world = world; world.use_nodes = True
-    world.node_tree.nodes["Background"].inputs[0].default_value = (0.32, 0.34, 0.37, 1)
+    scene.view_settings.view_transform = "AgX"
+    if os.path.exists(args.hdri):
+        env = world.node_tree.nodes.new("ShaderNodeTexEnvironment"); env.image = bpy.data.images.load(os.path.abspath(args.hdri))
+        world.node_tree.links.new(env.outputs["Color"], world.node_tree.nodes["Background"].inputs[0])
+        world.node_tree.nodes["Background"].inputs[1].default_value = 1.0
+    else:
+        world.node_tree.nodes["Background"].inputs[0].default_value = (0.32, 0.34, 0.37, 1)
     def light(name, loc, energy, size=3):
         d = bpy.data.lights.new(name, "AREA"); d.energy = energy; d.size = size
         o = bpy.data.objects.new(name, d); o.location = loc; scene.collection.objects.link(o)
         o.rotation_euler = (Vector((0, 0, 1.0)) - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
-    light("key", (2.2, -2.6, 2.6), 900); light("fill", (-2.6, -1.8, 1.6), 300); light("rim", (0.5, 2.8, 2.4), 500)
+    light("key", (2.2, -2.6, 2.6), 350); light("rim", (0.5, 2.8, 2.4), 250)
     cam_d = bpy.data.cameras.new("cam"); cam_d.lens = 70
     cam = bpy.data.objects.new("cam", cam_d); scene.collection.objects.link(cam); scene.camera = cam
     for tag, loc, tgt in (("front", (0.4, -5.2, 1.05), (0, 0, 0.95)), ("face", (0.25, -1.6, 1.62), (0, 0, 1.58))):

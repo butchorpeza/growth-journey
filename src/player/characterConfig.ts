@@ -1,6 +1,5 @@
 /* Which character model the player uses and how its clips map to movement states.
-   TEMPORARY: the three.js "Soldier" sample (Mixamo rig, Idle/Walk/Run only) until the final realistic character
-   is produced (see docs/CHARACTER_PLAN.md). Swapping characters = changing this file. */
+   Swapping characters = changing this file. */
 
 export interface CharacterConfig {
   url: string;
@@ -15,14 +14,18 @@ export interface CharacterConfig {
 }
 
 export const character: CharacterConfig = {
-  url: `${import.meta.env.BASE_URL}models/characters/temp-soldier.glb`,
+  // MPFB2 (MakeHuman) character, CC0, built by scripts/blender/build_character.py (outfit: Chapter 01 "survival")
+  url: `${import.meta.env.BASE_URL}models/characters/player-survival.glb`,
+  // INTERIM clips: Idle/Walk/Run from the three.js Mixamo sample, retargeted by bone name until the full Mixamo set
+  // (jump, fall, land, interact, turns, look-around, door, stairs) is downloaded with Butch's Adobe ID.
+  animationsUrl: `${import.meta.env.BASE_URL}models/characters/temp-soldier.glb`,
   scale: 1,
-  yawOffset: Math.PI,
-  height: 1.8,
+  yawOffset: 0,
+  height: 1.75,
   clips: { idle: 'Idle', walk: 'Walk', run: 'Run' },
   walkClipSpeed: 1.45,
   runClipSpeed: 4.6,
-  temporary: true,
+  temporary: false,
 };
 
 export const MOVE = {
