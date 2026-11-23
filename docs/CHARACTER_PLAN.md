@@ -13,7 +13,7 @@ chapters, with the outfit evolving:
 
 Outfits come from swappable clothing meshes or material variants, not four separate models.
 
-## Current state (2026-11-23)
+## Current state (2026-11-24)
 - **Built:** `public/models/characters/player-survival.glb`, 1.85 MB.
   - Made with MPFB2 (CC0), using `scripts/blender/build_character.py`.
   - Adult man about 1.71 m tall, around 30 years old, with an Asian/Filipino build.
@@ -22,14 +22,25 @@ Outfits come from swappable clothing meshes or material variants, not four separ
   - About 70k triangles. Textures are 2K WebP, geometry is meshopt-compressed.
   - Skeleton: MPFB's **Mixamo** rig (52 bones, `mixamorig:*` names).
   - Preview renders: `docs/images/character-survival-front.png`, `character-survival-face.png`.
-- **Interim animation:** Idle/Walk/Run from the three.js Mixamo sample, retargeted when the game loads by `src/player/retargetClips.ts`.
-  - It uses direction-based retargeting: every frame, each bone is turned to point where the source bone points, and the hips also match the left–right axis.
-  - Fingers keep the character's relaxed rest pose.
-  - Copying rotations (local or world) was tried first and failed: twisted limbs, stretched hands. The two rigs differ in axes, units, bone rolls and rest pose (T vs A).
+- **Animation (2026-11-24): 11 Mixamo clips baked into `player-survival.glb`** (2.1 MB total).
+  - Idle, Walk, WalkBack, Run, TurnLeft, TurnRight, JumpStart, Fall, Land, Interact, LookAround.
+  - The source names and trims are in `ASSET_MANIFEST.md`.
+  - Downloaded on Mixamo's **Y Bot** (FBX, Without Skin, 30 fps, In Place), then baked in Blender by `scripts/blender/bake_mixamo_clips.py`:
+    1. Pose the character like Y Bot's rest pose.
+    2. Each frame, apply Y Bot's per-bone rotation change from rest.
+    3. Scale hip height, and play the clip in place.
+  - In game (`PlayerAnimations.ts`):
+    - Idle, walk, run and fall loop.
+    - Jump, land and inspect play once.
+    - After 9 s of standing still the character looks around.
+    - Walk and run playback follows ground speed. Measured clip speeds: walk 1.1 m/s, run 4.1 m/s. Player speeds: walk 1.45 m/s, run 4.6 m/s.
+  - Pressing E on an interactable turns the character to face it and plays the pick-up/inspect clip.
+  - WalkBack and the turns are in the GLB but not used yet. The controller always faces the direction of travel.
   - Result: `docs/images/character-ingame-poses.png`.
-  - Jump, fall, land and interact fall back to idle until the full clip set arrives.
-- **New Era outfit:** `--outfit new-era` builds the elegant suit on the same body and skeleton.
-- The temporary Soldier GLB is now only an animation *source*. Its mesh is no longer shown.
+- **Two lessons from the bake:**
+  - MPFB must build the body with `detailed_helpers=True`. Without the joint helpers the rig keeps T-pose arm and hand bones on an A-pose mesh, and every arm rotation pivots in the wrong place (thin "tube" arms, spaghetti fingers).
+  - Uploading our own skeleton to Mixamo doesn't work. Mixamo assumes its own bone axes and twists the arms. The interim run-time retargeter (`retargetClips.ts`) and the Soldier clips are gone.
+- **New Era outfit:** `--outfit new-era` builds the elegant suit on the same body and skeleton. Re-run the bake on it (same clips).
 
 ## Recommended pipeline (legally clean, practical in three.js)
 
@@ -69,7 +80,6 @@ bake the clips into the character GLB, compress it, and never offer it as a down
 5. Export one GLB with all actions and all outfits (hidden by default). Then `gltf-transform` with meshopt plus KTX2 (UASTC for normals, ETC1S for colour).
 6. Set the URL, clip names and authored walk/run speeds in `src/player/characterConfig.ts`. Nothing else in the code changes.
 
-## What Butch needs to do
-- Sign in to an **Adobe ID** at mixamo.com to download the animation clips. I can't log in for you.
-- Choose between **MPFB2** (CC0, outfit swaps, needs skin work) and the **Renderpeople scan** (more realistic, no outfit swaps, CC-BY).
+## Open items
 - Optionally send reference photos so the face and build lean towards your own look (not a replica).
+- Before launch: confirm the Mixamo terms cover clips baked into a browser-served GLB (see "Licence risk" above).

@@ -11,7 +11,6 @@ import { getGame } from '../game/GameState';
 import { GROUPS } from '../physics/CollisionLayers';
 import { character, MOVE } from './characterConfig';
 import { PlayerAnimations } from './PlayerAnimations';
-import { retargetClips } from './retargetClips';
 import { input } from './PlayerInput';
 import { playerState } from './playerState';
 
@@ -43,7 +42,6 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number] }) {
   const kcc = useRef<KCC | null>(null);
 
   const gltf = useGLTF(character.url, false, true);
-  const animSource = useGLTF(character.animationsUrl ?? character.url, false, true);
   const model = useMemo(() => {
     const m = cloneSkinned(gltf.scene) as Group;
     m.traverse((o) => {
@@ -52,9 +50,7 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number] }) {
     });
     return m;
   }, [gltf.scene]);
-  const clips = useMemo(() => (character.animationsUrl ? retargetClips(animSource.animations, gltf.scene, animSource.scene) : gltf.animations),
-    [animSource, gltf]);
-  const { actions } = useAnimations(clips, visual);
+  const { actions } = useAnimations(gltf.animations, visual);
   const anim = useRef<PlayerAnimations | null>(null);
   useEffect(() => { anim.current = new PlayerAnimations(actions, character); }, [actions]);
 
@@ -110,7 +106,7 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number] }) {
     t.sinceGround = playerState.grounded ? 0 : t.sinceGround + dt;
     if (active && input.jumpPressed) { t.sinceJump = 0; input.jumpPressed = false; } else t.sinceJump += dt;
     if (t.sinceJump < MOVE.jumpBuffer && t.sinceGround < MOVE.coyoteTime && v.y <= 0.01) {
-      v.y = MOVE.jumpVelocity; t.sinceJump = 9; t.sinceGround = 9; anim.current?.set('jump', 0.12);
+      v.y = MOVE.jumpVelocity; t.sinceJump = 9; t.sinceGround = 9; anim.current?.play('jump', 0.1);
     }
     v.y -= MOVE.gravity * dt;
 
@@ -133,8 +129,15 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number] }) {
     // animation + camera use the distance actually travelled, so pushing into a wall reads as standing
     playerState.speed = dt > 0 ? Math.hypot(m.x, m.z) / dt : 0;
 
-    // face the direction of travel
-    if (moving && Math.hypot(v.x, v.z) > 0.15) {
+    // face the direction of travel (or the object being inspected)
+    const ft = playerState.faceTarget;
+    if (moving) playerState.faceTarget = null;
+    if (ft && !moving) {
+      const targetYaw = Math.atan2(ft.x - playerState.position.x, ft.z - playerState.position.z);
+      let d = targetYaw - playerState.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
+      playerState.yaw += d * (1 - Math.exp(-8 * dt));
+      if (Math.abs(d) < 0.02) playerState.faceTarget = null;
+    } else if (moving && Math.hypot(v.x, v.z) > 0.15) {
       const targetYaw = Math.atan2(v.x, v.z);
       let d = targetYaw - playerState.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
       playerState.yaw += d * (1 - Math.exp(-MOVE.turnRate * dt));
@@ -147,11 +150,13 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number] }) {
     // animation state from the actual motion
     const a = anim.current;
     if (a) {
+      const airTime = t.air;                        // time spent airborne before this frame
       t.air = grounded ? 0 : t.air + dt;
-      if (!grounded && t.air > 0.18) a.set(v.y > 0.5 ? 'jump' : 'fall', 0.2);
-      else if (grounded && !wasGrounded && t.air > 0.35) a.set('land', 0.1);
+      if (playerState.action === 'interact') { playerState.action = null; if (grounded) a.play('interact', 0.25); }
+      if (!grounded && t.air > 0.18) a.set(v.y > 0.5 && a.state === 'jump' ? 'jump' : 'fall', 0.2);
+      else if (grounded && !wasGrounded && airTime > 0.35) a.play('land', 0.08);
       else if (grounded) a.set(playerState.speed < 0.15 ? 'idle' : playerState.speed < (MOVE.walkSpeed + MOVE.runSpeed) / 2 ? 'walk' : 'run', 0.28);
-      a.sync(playerState.speed);
+      a.update(dt, playerState.speed);
     }
   });
 

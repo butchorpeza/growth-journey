@@ -62,7 +62,12 @@ export function InteractionManager() {
     }
     if (input.interactPressed) {
       input.interactPressed = false;                     // an unused press never fires later by surprise
-      if (best) (best as Entry).run();
+      if (best) {
+        const e = best as Entry;
+        playerState.action = 'interact';               // the character bends down / reaches for it
+        playerState.faceTarget = e.world.clone();
+        e.run();
+      }
     }
   });
   return null;

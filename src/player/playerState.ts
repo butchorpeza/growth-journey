@@ -10,4 +10,6 @@ export const playerState = {
   camYaw: 0.6, camPitch: 0.28,       // camera orbit angles (radians)
   camDistance: 3.6,
   teleport: null as null | Vector3,  // set to move the player instantly (checkpoints)
+  action: null as null | 'interact', // one-shot body animation requested by gameplay (consumed by the Player)
+  faceTarget: null as null | Vector3, // turn to face this point (e.g. the object being inspected)
 };

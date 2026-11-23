@@ -15,7 +15,8 @@ needs a credit (see `CREDITS.md`, to be generated).
 | Asset | Chapter | Source | Licence | Format | Notes | Status |
 |---|---|---|---|---|---|---|
 | Overcast Soil (Pure Sky) HDRI, 1K | Prototype / Survival | https://polyhaven.com/a/overcast_soil_puresky | CC0 | HDR 1.2 MB | `public/hdri/` | Acquired |
-| three.js example "Soldier" | Prototype only | https://github.com/mrdoob/three.js/blob/dev/examples/models/gltf/Soldier.glb | Mixamo character (Adobe royalty-free terms) from the three.js repo | GLB 2.2 MB, Mixamo rig, Idle/Walk/Run | **Temporary test character**, to be replaced | Acquired |
+| three.js example "Soldier" | Prototype only | https://github.com/mrdoob/three.js/blob/dev/examples/models/gltf/Soldier.glb | Mixamo character (Adobe royalty-free terms) from the three.js repo | GLB 2.2 MB, Mixamo rig, Idle/Walk/Run | Interim clip source; **removed 2026-11-24** (replaced by the Mixamo set below) | Retired |
+| Mixamo clip set (11 clips) | Character, all chapters | https://www.mixamo.com/ (Y Bot, "Without Skin", FBX, 30 fps, In Place) | Adobe Mixamo terms: royalty-free in projects, no redistribution of raw files | FBX in `assets-src/character/mixamo/` (not in git) → baked into `player-survival.glb` | Breathing Idle → Idle · Male Standard Walk → Walk · Male Walk Backwards → WalkBack · Standard Running → Run · Standing Left/Right Turn → TurnLeft/TurnRight · Jumping Up From Action Idle (Game Blend) → JumpStart · Mid-Air Falling Idle → Fall · Landing From Falling Idle → Land · Picking Up An Object (frames 15–200) → Interact · Idle Stand Looking Around → LookAround | Integrated |
 | Survival CC0 set from Poly Haven (fetched with `scripts/fetch-polyhaven.mjs`) | Survival | https://polyhaven.com (each folder has SOURCE.txt) | CC0 | HDRI 2K, glTF 1K, PBR 2K | HDRIs: mud_road, farmland_overcast. Materials: rusty_corrugated_iron, red_laterite_soil_stones, concrete_block_wall, weathered_planks, damaged_plaster, muddy_tracks. Models: modular_electricity_poles (200k polys, needs LOD), modular_electric_cables, plastic_monobloc_chair_01, WoodenTable_01, plastic_jerrycan, wooden_bucket_01, pot_enamel_01, barrel_stove, wicker_basket_01, sungka_board, vintage_oil_lamp, wooden_crate_01, old_tyre, wooden_ladder, rusted_spade_01. In `assets-src/survival/polyhaven/` (125 MB source; not in git). | Acquired (inspection pending in Phase 04) |
 | MPFB2 extension v2.0.18 | Character | https://extensions.blender.org/add-ons/mpfb/ | GPL add-on, CC0 assets | Blender extension | Installed into Blender 5.1 | Acquired |
 | Island + "Kid" (Butch's Downloads) | — | local file | unknown origin | GLB 75 MB | Low-poly and cartoon, so not usable as final art | Rejected |
@@ -194,9 +195,9 @@ See `CHARACTER_PLAN.md`. Summary:
 
 | Item | Source | Licence | Status |
 |---|---|---|---|
-| MPFB2 (MakeHuman for Blender) + CC0 clothing packs | https://extensions.blender.org/add-ons/mpfb/ · https://static.makehumancommunity.org/assets/assetpacks.html | GPL add-on, CC0 assets | Pending (recommended body) |
+| MPFB2 (MakeHuman for Blender) + CC0 clothing packs | https://extensions.blender.org/add-ons/mpfb/ · https://static.makehumancommunity.org/assets/assetpacks.html | GPL add-on, CC0 assets | Integrated (`player-survival.glb`) |
 | Renderpeople "Eric Rigged 001" | https://sketchfab.com/3d-models/eric-rigged-001-rigged-3d-business-man-a46bc9f67aaa415bb4f3241eef900e7f | CC-BY | Pending (realism alternative) |
-| Mixamo animations | https://www.mixamo.com/ | Adobe royalty-free, no raw redistribution | Manual (Adobe ID) |
+| Mixamo animations | https://www.mixamo.com/ | Adobe royalty-free, no raw redistribution | Integrated: 11 clips baked into the character GLB (list above) |
 | Quaternius Universal Animation Library | https://quaternius.com/packs/universalanimationlibrary.html | CC0 | Pending |
 | CMU mocap | http://mocap.cs.cmu.edu/ | free use, no resale of the data | Pending |
 

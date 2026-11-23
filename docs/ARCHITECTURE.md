@@ -124,7 +124,7 @@ the first stair); kinematic-vs-fixed sensors don't fire in Rapier by default (sw
 |---|---|---|
 | 01 Audit | this document | ✅ |
 | 02 Assets | `ASSET_MANIFEST.md`, `ASSET_PIPELINE.md` | ✅ research · ⏳ purchases/downloads need Butch's accounts |
-| 03 Character & camera | playable controller (✅), **final realistic character** (⏳ see `CHARACTER_PLAN.md`), full clip set, close-camera fade, touch prototype | walk/run/jump/interact with the final character, no foot sliding, no camera clipping |
+| 03 Character & camera | playable controller (✅), realistic MPFB character (✅), full Mixamo clip set (✅), close-camera fade, touch prototype | walk/run/jump/interact with the final character, no foot sliding, no camera clipping |
 | 04 Survival | rural village from real assets, overcast HDRI, first objective, exit road | visual sign-off by Butch before Phase 05 |
 | 05 Shadows | forest road + abandoned settlement, moonlight, fog, audio layer | sign-off |
 | 06 Rebirth | castle + village, two-state restoration (gate, bridge, light) | sign-off |

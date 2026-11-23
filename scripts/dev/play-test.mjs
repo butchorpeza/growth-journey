@@ -33,12 +33,12 @@ await b.eval(`window.__game.setGame({ mode: 'playing', reading: null }); window.
 await hold(['KeyW', 'ShiftLeft'], 1500); log('pressed into wall (x must stay > -13.5)', await pos());
 // slopes: 44° should be climbable, 58° not
 await b.eval(`window.__player.teleport = new window.__player.position.constructor(-4, 0, -8.5); window.__player.camYaw = 0; 1`); await sleep(500);
-await hold(['KeyW'], 2500); log('44° ramp after 2.5s (y should rise)', await pos());
+await hold(['KeyW'], 3500); log('44° ramp after 3.5s (y should rise)', await pos());
 await b.eval(`window.__player.teleport = new window.__player.position.constructor(0, 0, -8.5); 1`); await sleep(500);
-await hold(['KeyW'], 2500); log('58° ramp after 2.5s (y should stay low)', await pos());
+await hold(['KeyW'], 3500); log('58° ramp after 3.5s (y should stay low)', await pos());
 // stairs at x=6 from z=-8 going -z
 await b.eval(`window.__player.teleport = new window.__player.position.constructor(6, 0, -6.5); 1`); await sleep(500);
-await hold(['KeyW'], 2500); log('stairs after 2.5s (y should reach ~1.7)', await pos());
+await hold(['KeyW'], 3500); log('stairs after 3.5s (y should reach ~1.7)', await pos());
 await b.shot(`${out}/05-stairs.png`);
 // camera collision: stand in the corridor and rotate the camera towards the wall
 await b.eval(`window.__player.teleport = new window.__player.position.constructor(-12, 0, 8); window.__player.camYaw = Math.PI/2; window.__player.camDistance = 5; 1`); await sleep(800);

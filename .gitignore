@@ -7,3 +7,7 @@ public/models/.island-tmp.glb
 scripts/dev/out
 .chrome-test
 assets-src
+.chrome-pose
+.chrome-sheet
+.chrome-*
+*.tsbuildinfo

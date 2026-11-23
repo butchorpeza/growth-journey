@@ -21,7 +21,6 @@ export function GameHUD({ surface, onExit }: { surface: () => HTMLElement | null
         <span className="hud__tag">Prototype · temporary blockout</span>
       </div>
       {character.temporary && <p className="hud__note">Temporary test character.</p>}
-      {!character.temporary && <p className="hud__note">Interim animation set · full motion-capture set pending</p>}
 
       {mode === 'loading' && <div className="hud__center"><p className="hud__label">Loading the world…</p></div>}
 

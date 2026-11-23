@@ -41,6 +41,10 @@ Per-chapter budget, first load: ≤ 25 MB of compressed GLB and KTX2, ≤ 1.5 M 
   gltf-transform meshopt tmp.glb out.glb        # or: draco (static meshes only)
   ```
   WebP is the fallback until `toktx` is installed (`brew install ktx-software`). `scripts/optimize-island.mjs` is the working example (75 MB → 3 MB).
+- **Character:** `scripts/blender/build_character.py` (body, rig, outfit) → `scripts/blender/bake_mixamo_clips.py`
+  (bakes every Mixamo FBX in `assets-src/character/mixamo/` onto the rig, one action per clip) → `gltf-transform resize
+  --width 2048 --height 2048`, `webp`, `prune`, `resample`, `meshopt` → `public/models/characters/player-survival.glb`.
+  Review renders of the baked clips before shipping (feet planted, no twisted wrists).
 - Meshopt is the default because it also compresses skinning and animation and decodes fast, and three.js ships the decoder. Draco is optional for large static meshes.
 - **Always compare before and after in a test scene.** Never compress blindly, and check normal maps and silhouettes.
 

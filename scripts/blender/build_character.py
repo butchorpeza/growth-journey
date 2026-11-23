@@ -69,7 +69,9 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 macros = TargetService.get_default_macro_info_dict()
 macros.update({"gender": 1.0, "age": 0.6, "muscle": 0.62, "weight": 0.55, "proportions": 0.72, "height": 0.55,
                "race": {"asian": 0.72, "caucasian": 0.2, "african": 0.08}})
-basemesh = HumanService.create_human(mask_helpers=True, detailed_helpers=False, extra_vertex_groups=True,
+# detailed_helpers: without MPFB's per-joint helper groups the rig can't find the arm/hand joints on the mesh and
+# falls back to its T-pose bone positions — the arms then pivot around the wrong points (twisted, stretched arms).
+basemesh = HumanService.create_human(mask_helpers=True, detailed_helpers=True, extra_vertex_groups=True,
                                      feet_on_ground=True, scale=0.1, macro_detail_dict=macros)
 basemesh.name = "Body"
 log("body verts", len(basemesh.data.vertices))
