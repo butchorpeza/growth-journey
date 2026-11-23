@@ -1,14 +1,14 @@
-import { chapters } from '../../data/chapters';
+import { sections } from '../../data/sections';
 import { challenges } from '../../data/challenges';
 import { ChapterHeader } from '../common/ChapterHeader';
 
-const chapter = chapters[1];
+const chapter = sections[1];
 
 export function DiscoveryChapter() {
   return (
-    <section id="the-discovery" data-chapter="1" className="chapter chapter--discovery" aria-labelledby="h-discovery">
+    <section id="approach" data-chapter="1" className="chapter chapter--discovery" aria-labelledby="h-discovery">
       <div className="chapter__intro">
-        <ChapterHeader chapter={chapter} headingId="h-discovery" heading="The Discovery" />
+        <ChapterHeader chapter={chapter} headingId="h-discovery" heading="Approach" />
         <p className="chapter__lede" data-reveal>Before building a solution, understand what is holding a business back.</p>
       </div>
       <div className="chapter__body">

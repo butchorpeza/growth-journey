@@ -1,12 +1,15 @@
 import { scrollToChapter } from '../../animations/scroll/ScrollDirector';
-import { chapters } from '../../data/chapters';
+import { sections } from '../../data/sections';
 import { profile } from '../../data/profile';
+import { startJourney } from '../../game/startJourney';
+import { useJourney } from '../../state/journey';
 
-const chapter = chapters[0];
+const chapter = sections[0];
 
 export function BeginningChapter() {
+  const quality = useJourney((s) => s.quality);
   return (
-    <section id="the-beginning" data-chapter="0" className="chapter chapter--beginning" aria-labelledby="h-beginning">
+    <section id="about" data-chapter="0" className="chapter chapter--beginning" aria-labelledby="h-beginning">
       <div className="chapter__intro chapter__intro--hero">
         <p className="eyebrow" data-reveal><span>{chapter.number}</span> {chapter.title}</p>
         <h1 id="h-beginning" className="hero-title" data-reveal>
@@ -16,12 +19,18 @@ export function BeginningChapter() {
         <p className="hero-capabilities" data-reveal>{profile.capabilities.map((c) => `${c}.`).join(' ')}</p>
         <p className="hero-tagline" data-reveal>“{profile.tagline}”</p>
         <div className="hero-actions" data-reveal>
-          <a className="btn btn--primary" href="#the-discovery" onClick={(e) => { e.preventDefault(); scrollToChapter(1); }}>
-            <span>Explore My Journey</span>
-            <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14"><path d="M8 2.5v11m0 0L3.5 9M8 13.5 12.5 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <button type="button" className="btn btn--primary" onClick={startJourney} disabled={quality === 'off'}>
+            <span>Start the Journey</span>
+            <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14"><path d="M5 3.5v9l7-4.5z" fill="currentColor" /></svg>
+          </button>
+          <a className="btn btn--ghost" href="#approach" onClick={(e) => { e.preventDefault(); scrollToChapter(1); }}>
+            <span>Explore the website</span>
           </a>
           <span className="hero-location">{profile.location}</span>
         </div>
+        <p className="hero-note" data-reveal>
+          {quality === 'off' ? 'The interactive journey needs WebGL, which this browser has turned off. Everything is also on this page.' : 'An interactive third-person journey · best on a desktop with keyboard and mouse.'}
+        </p>
         <p className="scroll-cue" aria-hidden="true">Scroll to begin</p>
       </div>
 

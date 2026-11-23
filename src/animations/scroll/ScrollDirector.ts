@@ -5,13 +5,13 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import { chapters, CHAPTER_COUNT } from '../../data/chapters';
+import { sections, SECTION_COUNT } from '../../data/sections';
 import { progress, setJourney } from '../../state/journey';
 
 gsap.registerPlugin(ScrollTrigger);
 
 let lenis: Lenis | null = null;
-let sections: HTMLElement[] = [];
+let els: HTMLElement[] = [];
 let spans: { top: number; height: number }[] = [];
 let tick: ((time: number) => void) | null = null;
 let lastY = 0;
@@ -20,8 +20,8 @@ const DEBUG = typeof window !== 'undefined' && new URLSearchParams(window.locati
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 function measure() {
-  sections = Array.from(document.querySelectorAll<HTMLElement>('[data-chapter]'));
-  spans = sections.map((s) => {
+  els = Array.from(document.querySelectorAll<HTMLElement>('[data-chapter]'));
+  spans = els.map((s) => {
     const r = s.getBoundingClientRect();
     return { top: r.top + window.scrollY, height: r.height };
   });
@@ -40,7 +40,7 @@ function update() {
   }
   progress.velocity = window.scrollY - lastY;
   lastY = window.scrollY;
-  progress.value = clamp(p, 0, CHAPTER_COUNT - 0.0001);
+  progress.value = clamp(p, 0, SECTION_COUNT - 0.0001);
   setJourney({ chapter: Math.floor(progress.value) });
 }
 
@@ -52,7 +52,7 @@ export function initScroll({ reduced }: { reduced: boolean }): () => void {
     gsap.ticker.add(tick);
     gsap.ticker.lagSmoothing(0);
   }
-  if (DEBUG) (window as unknown as Record<string, unknown>).__journey = { lenis, progress, scrollToChapter, chapters };
+  if (DEBUG) (window as unknown as Record<string, unknown>).__journey = { lenis, progress, scrollToChapter, sections };
   const onScroll = () => update();
   window.addEventListener('scroll', onScroll, { passive: true });
   const onRefresh = () => { measure(); update(); };

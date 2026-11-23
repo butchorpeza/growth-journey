@@ -1,14 +1,14 @@
-import { chapters } from '../../data/chapters';
+import { sections } from '../../data/sections';
 import { services } from '../../data/services';
 import { ChapterHeader } from '../common/ChapterHeader';
 
-const chapter = chapters[2];
+const chapter = sections[2];
 
 export function SystemChapter() {
   return (
-    <section id="the-system" data-chapter="2" className="chapter chapter--system" aria-labelledby="h-system">
+    <section id="services" data-chapter="2" className="chapter chapter--system" aria-labelledby="h-system">
       <div className="chapter__intro">
-        <ChapterHeader chapter={chapter} headingId="h-system" heading="The System" />
+        <ChapterHeader chapter={chapter} headingId="h-system" heading="Services" />
         <p className="chapter__lede" data-reveal>
           Five capabilities, one growth strategy. The website, the marketing behind it, the automation after it and the
           brand around it are planned together, so each part makes the others work harder.

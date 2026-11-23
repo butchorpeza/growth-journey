@@ -2,7 +2,7 @@
    a full list. Every chapter is one click or one key away; nobody has to sit through the whole journey. */
 import { useEffect, useRef } from 'react';
 import { scrollToChapter, stopScroll } from '../../animations/scroll/ScrollDirector';
-import { chapters } from '../../data/chapters';
+import { sections } from '../../data/sections';
 import { setJourney, useJourney } from '../../state/journey';
 
 export function ChapterNav() {
@@ -21,9 +21,9 @@ export function ChapterNav() {
 
   return (
     <>
-      <nav className="rail" aria-label="Chapters">
+      <nav className="rail" aria-label="Sections">
         <ol>
-          {chapters.map((c) => (
+          {sections.map((c) => (
             <li key={c.id}>
               <a href={`#${sectionId(c.index)}`} aria-current={current === c.index ? 'step' : undefined}
                 onClick={(e) => { e.preventDefault(); go(c.index); }}>
@@ -35,12 +35,12 @@ export function ChapterNav() {
         </ol>
       </nav>
 
-      <div className={`chapters-panel${open ? ' is-open' : ''}`} role="dialog" aria-modal="true" aria-label="Chapters" hidden={!open}
+      <div className={`chapters-panel${open ? ' is-open' : ''}`} role="dialog" aria-modal="true" aria-label="Sections" hidden={!open}
         onKeyDown={(e) => { if (e.key === 'Tab') trapFocus(e); }}>
         <div className="chapters-panel__inner">
-          <p className="eyebrow eyebrow--plain">The Growth Journey</p>
+          <p className="eyebrow eyebrow--plain">Butch Orpeza</p>
           <ol>
-            {chapters.map((c, i) => (
+            {sections.map((c, i) => (
               <li key={c.id}>
                 <button ref={i === 0 ? firstLink : undefined} type="button" aria-current={current === c.index ? 'step' : undefined} onClick={() => go(c.index)}>
                   <span className="chapters-panel__num">{c.number}</span>
@@ -57,7 +57,7 @@ export function ChapterNav() {
   );
 }
 
-export const sectionId = (i: number) => ['the-beginning', 'the-discovery', 'the-system', 'the-results', 'the-next-frontier'][i];
+export const sectionId = (i: number) => sections[i].id;
 
 function trapFocus(e: React.KeyboardEvent<HTMLDivElement>) {
   const f = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button, a[href]'));

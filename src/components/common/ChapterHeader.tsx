@@ -1,7 +1,7 @@
-import type { Chapter } from '../../data/chapters';
+import type { Section } from '../../data/sections';
 
 /** Eyebrow ("02 · The Discovery") + the chapter's narrative line. The heading itself is passed by each chapter. */
-export function ChapterHeader({ chapter, headingId, heading, level = 2 }: { chapter: Chapter; headingId: string; heading: string; level?: 1 | 2 }) {
+export function ChapterHeader({ chapter, headingId, heading, level = 2 }: { chapter: Section; headingId: string; heading: string; level?: 1 | 2 }) {
   const H = level === 1 ? 'h1' : 'h2';
   return (
     <header className="chapter__header">

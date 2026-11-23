@@ -5,7 +5,6 @@ import { initScroll } from '../animations/scroll/ScrollDirector';
 import { initReveals } from '../animations/timelines/reveals';
 import { prefersReducedMotion } from '../hooks/useReducedMotion';
 import { getJourney, setJourney } from '../state/journey';
-import { Loader } from './interface/Loader';
 import { SiteFooter } from './interface/SiteFooter';
 import { ChapterNav } from './navigation/ChapterNav';
 import { ProgressBar } from './navigation/ProgressBar';
@@ -30,7 +29,6 @@ export function App() {
       <TopBar />
       <ProgressBar />
       <ChapterNav />
-      <Loader />
       <main id="main">
         <Story />
       </main>

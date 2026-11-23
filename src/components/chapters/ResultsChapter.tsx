@@ -1,13 +1,13 @@
-import { chapters } from '../../data/chapters';
+import { sections } from '../../data/sections';
 import { experience, ventures } from '../../data/profile';
 import { clients, projects } from '../../data/projects';
 import { ChapterHeader } from '../common/ChapterHeader';
 
-const chapter = chapters[3];
+const chapter = sections[3];
 
 export function ResultsChapter() {
   return (
-    <section id="the-results" data-chapter="3" className="chapter chapter--results" aria-labelledby="h-results">
+    <section id="work" data-chapter="3" className="chapter chapter--results" aria-labelledby="h-results">
       <div className="chapter__intro">
         <ChapterHeader chapter={chapter} headingId="h-results" heading="Selected Work" />
         <p className="chapter__lede" data-reveal>

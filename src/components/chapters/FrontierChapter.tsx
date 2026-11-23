@@ -1,15 +1,15 @@
-import { chapters } from '../../data/chapters';
+import { sections } from '../../data/sections';
 import { contact, profile, socials } from '../../data/profile';
 import { ButtonLink } from '../common/Button';
 import { ChapterHeader } from '../common/ChapterHeader';
 
-const chapter = chapters[4];
+const chapter = sections[4];
 
 export function FrontierChapter() {
   return (
-    <section id="the-next-frontier" data-chapter="4" className="chapter chapter--frontier" aria-labelledby="h-frontier">
+    <section id="contact" data-chapter="4" className="chapter chapter--frontier" aria-labelledby="h-frontier">
       <div className="chapter__intro chapter__intro--final">
-        <ChapterHeader chapter={chapter} headingId="h-frontier" heading="The Next Frontier" />
+        <ChapterHeader chapter={chapter} headingId="h-frontier" heading="Contact" />
         <p className="final-line" data-reveal>Let’s build something that moves your business forward.</p>
         <p className="final-sign" data-reveal><strong>{profile.name}</strong><span>{profile.title}</span></p>
         <div className="final-actions" data-reveal>

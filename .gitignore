@@ -4,3 +4,6 @@ dist-ssr
 *.local
 .DS_Store
 public/models/.island-tmp.glb
+scripts/dev/out
+.chrome-test
+assets-src
