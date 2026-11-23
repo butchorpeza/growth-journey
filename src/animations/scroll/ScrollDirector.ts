@@ -5,7 +5,7 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import { CHAPTER_COUNT } from '../../data/chapters';
+import { chapters, CHAPTER_COUNT } from '../../data/chapters';
 import { progress, setJourney } from '../../state/journey';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -15,6 +15,7 @@ let sections: HTMLElement[] = [];
 let spans: { top: number; height: number }[] = [];
 let tick: ((time: number) => void) | null = null;
 let lastY = 0;
+const DEBUG = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug');
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
@@ -29,7 +30,9 @@ function measure() {
 /* the line half-way down the viewport decides where we are: chapter i while it is inside section i */
 function update() {
   if (!spans.length) return;
-  const y = window.scrollY + window.innerHeight * 0.5;
+  // the reading line starts at the top of the viewport and settles half-way down after one screen,
+  // so the very top of the page is exactly the start of chapter 01
+  const y = window.scrollY + window.innerHeight * 0.5 * clamp(window.scrollY / window.innerHeight, 0, 1);
   let p = 0;
   for (let i = 0; i < spans.length; i++) {
     const { top, height } = spans[i];
@@ -49,6 +52,7 @@ export function initScroll({ reduced }: { reduced: boolean }): () => void {
     gsap.ticker.add(tick);
     gsap.ticker.lagSmoothing(0);
   }
+  if (DEBUG) (window as unknown as Record<string, unknown>).__journey = { lenis, progress, scrollToChapter, chapters };
   const onScroll = () => update();
   window.addEventListener('scroll', onScroll, { passive: true });
   const onRefresh = () => { measure(); update(); };

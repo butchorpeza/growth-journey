@@ -27,7 +27,9 @@ export default function Experience({ quality, reduced }: { quality: 'high' | 'lo
       dpr={dpr}
       gl={{ antialias: quality === 'high', powerPreference: 'high-performance', alpha: false, stencil: false }}
       camera={{ fov: 38, near: 0.5, far: 3200, position: [70, 34, 96] }}
-      onCreated={({ gl }) => { gl.toneMapping = ACESFilmicToneMapping; gl.toneMappingExposure = 1.05; gl.outputColorSpace = SRGBColorSpace; }}
+      onCreated={(state) => {
+        const { gl } = state;
+        if (new URLSearchParams(window.location.search).has('debug')) (window as unknown as Record<string, unknown>).__r3f = state; gl.toneMapping = ACESFilmicToneMapping; gl.toneMappingExposure = 1.05; gl.outputColorSpace = SRGBColorSpace; }}
       aria-hidden="true"
     >
       {/* drop resolution if the device can't hold the frame rate, raise it again when it can */}

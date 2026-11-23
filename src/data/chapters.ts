@@ -42,8 +42,10 @@ export const chapters: Chapter[] = [
     narrative: 'Every business has a starting point. Every growth journey begins with a vision.',
     anchor: [0, 0, 0],
     camera: {
-      from: { position: [70, 34, 96], target: [0, 6, 0] },
-      to: { position: [22, 8, 12], target: [9.5, 3.4, -1.5] },
+      // wide establishing shot with the island right of the headline -> the avatar at the temple door
+      // (island ~55 units across; avatar ~4 units tall, hips at 9.7, 2.0, -1.3). Phase 03 refines this move.
+      from: { position: [58, 30, 86], target: [-16, 4, -4] },
+      to: { position: [17, 5.2, 7.5], target: [6.5, 3.6, -1.4] },
     },
     atmosphere: { skyTop: '#101820', skyHorizon: '#8f7a64', fog: '#2b3a4c', fogDensity: 0.0042, sun: '#f3d1a6', sunIntensity: 2.4, ambient: 0.9 },
   },
