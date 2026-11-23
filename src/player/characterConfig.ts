@@ -4,6 +4,7 @@
 
 export interface CharacterConfig {
   url: string;
+  animationsUrl?: string;   // clips from another Mixamo-rigged file (retargeted by bone name, see retargetClips.ts)
   scale: number;
   yawOffset: number;        // radians: rotate the model so it faces +Z (the controller's "forward")
   height: number;           // metres, for the capsule

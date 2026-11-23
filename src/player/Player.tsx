@@ -11,6 +11,7 @@ import { getGame } from '../game/GameState';
 import { GROUPS } from '../physics/CollisionLayers';
 import { character, MOVE } from './characterConfig';
 import { PlayerAnimations } from './PlayerAnimations';
+import { retargetClips } from './retargetClips';
 import { input } from './PlayerInput';
 import { playerState } from './playerState';
 
@@ -27,6 +28,7 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number] }) {
   const kcc = useRef<KCC | null>(null);
 
   const gltf = useGLTF(character.url, false, true);
+  const animSource = useGLTF(character.animationsUrl ?? character.url, false, true);
   const model = useMemo(() => {
     const m = cloneSkinned(gltf.scene) as Group;
     m.traverse((o) => {
@@ -35,7 +37,9 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number] }) {
     });
     return m;
   }, [gltf.scene]);
-  const { actions } = useAnimations(gltf.animations, visual);
+  const clips = useMemo(() => (character.animationsUrl ? retargetClips(animSource.animations, gltf.scene, animSource.scene) : gltf.animations),
+    [animSource, gltf]);
+  const { actions } = useAnimations(clips, visual);
   const anim = useRef<PlayerAnimations | null>(null);
   useEffect(() => { anim.current = new PlayerAnimations(actions, character); }, [actions]);
 

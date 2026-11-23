@@ -16,6 +16,8 @@ needs a credit (see `CREDITS.md`, to be generated).
 |---|---|---|---|---|---|---|
 | Overcast Soil (Pure Sky) HDRI, 1K | Prototype / Survival | https://polyhaven.com/a/overcast_soil_puresky | CC0 | HDR 1.2 MB | `public/hdri/` | Acquired |
 | three.js example "Soldier" | Prototype only | https://github.com/mrdoob/three.js/blob/dev/examples/models/gltf/Soldier.glb | Mixamo character (Adobe royalty-free terms) from the three.js repo | GLB 2.2 MB, Mixamo rig, Idle/Walk/Run | **Temporary test character**, to be replaced | Acquired |
+| Survival CC0 set from Poly Haven (fetched with `scripts/fetch-polyhaven.mjs`) | Survival | https://polyhaven.com (each folder has SOURCE.txt) | CC0 | HDRI 2K, glTF 1K, PBR 2K | HDRIs: mud_road, farmland_overcast. Materials: rusty_corrugated_iron, red_laterite_soil_stones, concrete_block_wall, weathered_planks, damaged_plaster, muddy_tracks. Models: modular_electricity_poles (200k polys, needs LOD), modular_electric_cables, plastic_monobloc_chair_01, WoodenTable_01, plastic_jerrycan, wooden_bucket_01, pot_enamel_01, barrel_stove, wicker_basket_01, sungka_board, vintage_oil_lamp, wooden_crate_01, old_tyre, wooden_ladder, rusted_spade_01. In `assets-src/survival/polyhaven/` (125 MB source; not in git). | Acquired (inspection pending in Phase 04) |
+| MPFB2 extension v2.0.18 | Character | https://extensions.blender.org/add-ons/mpfb/ | GPL add-on, CC0 assets | Blender extension | Installed into Blender 5.1 | Acquired |
 | Island + "Kid" (Butch's Downloads) | — | local file | unknown origin | GLB 75 MB | Low-poly and cartoon, so not usable as final art | Rejected |
 
 ---
