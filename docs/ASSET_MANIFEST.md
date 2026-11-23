@@ -20,12 +20,96 @@ needs a credit (see `CREDITS.md`, to be generated).
 
 ---
 
-## 01 · Survival and 02 · The Shadows
-Research report pending (an agent is still checking Fab, Sketchfab, BlenderKit, Poly Haven and ambientCG). These rows will be added here.
+## 01 · Survival (grounded tropical rural village)
+Blendkit (BlenderKit renamed itself in 2026) needs the add-on plus a free account and delivers .blend only.
 
-HDRIs (verified, CC0):
-- Survival, overcast: https://polyhaven.com/a/mud_road · https://polyhaven.com/a/farmland_overcast · https://polyhaven.com/a/kloofendal_overcast
-- Shadows, moonlit: https://polyhaven.com/a/moonlit_golf · https://polyhaven.com/a/narrow_moonlit_road · https://polyhaven.com/a/qwantani_moonrise
+**Sketchfab "Free Standard" licence:** commercial use is allowed, but the asset may not be redistributed. A GLB served to a browser can be extracted, so check this before shipping.
+
+| Asset | Category | Source | Licence | Price | Specs | Status |
+|---|---|---|---|---|---|---|
+| Old House Wooden Enterable Rusty | Hero weathered house | https://sketchfab.com/3d-models/old-house-wooden-enterable-rusty-7f496b3002d24341a618408cb8221e8c | CC-BY 4.0 | Free | 24.2k faces; rusted corrugated roof, timber upper floor, concrete ground floor | Pending (**best fit**) |
+| Abandoned Building Shop Old House | Weathered house / shop | https://sketchfab.com/3d-models/abandoned-building-shop-old-house-0ed14367314946b298d9a58db66da040 | CC-BY | Free | 12.8k faces | Pending |
+| Rustic Old Brick & Mud House | Small concrete house | https://sketchfab.com/3d-models/rustic-old-brick-mud-house-low-poly-b91c140cd167434bbeae85f03240bf25 | CC-BY | Free | 469k faces, realistic despite its title; decimate | Pending |
+| Old Shack 1 | Storage shed | https://www.blendkit.com/asset-gallery-detail/813771d5-0b43-415c-bd75-98d3bf9a82d1/ | CC0 | Free | 14.6k faces, 2K, rusted corrugated sheets | Pending |
+| Shack 2 | Shed | https://www.blendkit.com/asset-gallery-detail/1b280ba7-0439-476f-b22d-31a0942e48b5/ | Blendkit RF | Free | 11.4k faces, 2K | Pending |
+| NIPA HUT | Outdoor shelter | https://sketchfab.com/3d-models/nipa-hut-0162f1a7e8ec4fe18a1feae6279e7420 | CC-BY | Free | 54.8k faces, semi-realistic | Pending |
+| South East Asian Village House Set (AliasHasim) | Village houses | https://www.fab.com/listings/a80b5c6f-a185-4f25-b3a2-81a6413294ab | Fab (tier unverified) | ≈ PHP 926 | FBX + OBJ, 4K/8K; the only non-Unreal regional option | Manual |
+| Asian Farm Props and Modular Shacks Vol. 1 | Shacks + props | https://www.fab.com/listings/1c24885b-eff0-40e0-8de5-51d0af52bcf9 | Fab | ≈ PHP 2,076 | `.uasset` only | Rejected (Unreal-only) |
+| Tropical Village (PolyPixel) | Huts, palms, banana | https://www.fab.com/listings/5f5b8dc8-34c1-423a-ae0a-899e35f6d803 | Fab | ≈ PHP 1,916 | `.uasset` only | Rejected (Unreal-only) |
+| modular_electricity_poles + modular_electric_cables | Utility poles + wires | https://polyhaven.com/a/modular_electricity_poles · https://polyhaven.com/a/modular_electric_cables | CC0 | Free | 200k / 42k polys, 12.4 / 6.0 MB as glTF with 1K textures | Pending (**best fit**) |
+| Utility Pole – 2048px² | Utility pole | https://sketchfab.com/3d-models/utility-pole-2048px2-dbb782fcb99b4b4395ffc44b0bca7e92 | CC-BY | Free | 17.1k faces, 2K | Pending |
+| Fences, Concretes, Metal, Desert, Old Pack | Fences / walls | https://sketchfab.com/3d-models/fences-concretes-metal-desert-old-pack-0cbf546419cf499cbabfee3af0916215 | CC-BY | Free | 2.5k faces | Pending |
+| chainlink fence, gate latch | Fence / gate | https://polyhaven.com/a/modular_chainlink_fence · https://polyhaven.com/a/gate_latch_01 | CC0 | Free | 89k polys | Pending |
+| Poly Haven household props | Table, chairs, containers, cooking | https://polyhaven.com/a/plastic_monobloc_chair_01 · /a/WoodenTable_01 · /a/plastic_jerrycan · /a/plastic_container · /a/wooden_bucket_01 · /a/metal_jerrycan · /a/pot_enamel_01 · /a/barrel_stove · /a/wicker_basket_01 · /a/sungka_board · /a/vintage_oil_lamp · /a/wooden_crate_01 | CC0 | Free | 1–20k polys each, scanned; the monobloc chair and sungka board are authentic Filipino touches | Pending |
+| Poly Haven tools / junk | Spade, tyre, ladder, hatchet | https://polyhaven.com/a/rusted_spade_01 · /a/old_tyre · /a/wooden_ladder · /a/hatchet | CC0 | Free | 2–11k polys | Pending |
+| Old Rusty Rice Cooker | Cooking prop | https://sketchfab.com/3d-models/old-rusty-rice-cooker-crafted-by-jerovdl-44c181d1d71c49399ae23f65198b94e4 | CC-BY | Free | 5.3k faces | Pending |
+| Old Cooking Pot / Plastic pail (scan) | Props | https://sketchfab.com/3d-models/old-cooking-pot-e2914c2ce86141d9b8d9859a4aed7ab0 · https://sketchfab.com/3d-models/pail-bucket-plastic-3d-scan-53e3310475974512b39dc46f3a3d7dd5 | CC-BY | Free | 15k / 40k faces | Pending |
+| Clothes Line | Hanging clothes | https://sketchfab.com/3d-models/clothes-line-ccd9af8480e64da2b5646f5e9b2c9bce | CC-BY | Free | 129k faces (decimate) | Pending |
+| Old wooden cart | Broken cart | https://sketchfab.com/3d-models/old-wooden-cart-c06d6248b9d64173b376926ee212fd6f | CC-BY | Free | 57.4k faces | Pending |
+| Old red bicycle | Bicycle | https://sketchfab.com/3d-models/old-red-bicycle-577376dfd2f142359dbac143a49a2489 | CC-BY | Free | 18k faces, clean (needs a rust pass) | Pending |
+| Rusted corrugated panels | Loose roofing | https://sketchfab.com/3d-models/rusted-corrugated-panels-ea06568a9e304ecc806cb7cb0552e269 | CC-BY | Free | 6.7k faces | Pending |
+| Damaged Corrugated Sheets Pack | Loose roofing | https://sketchfab.com/3d-models/damaged-corrugated-sheets-pack-05f5e371f6f8473b9ccf0f690cb17d46 | Sketchfab Free Standard | Free | 81.6k faces | Pending (licence check) |
+| Realistic Palm Tree 2 / Coconut Palm | Palms | https://sketchfab.com/3d-models/realistic-palm-tree-2-free-d05c8ffb6ec64a7184c4b673e21f7224 · https://sketchfab.com/3d-models/coconut-palm-26e787f2ff2e4c0fb004c3b0210805a3 | CC-BY | Free | 60.8k / 7.4k faces | Pending |
+| Tropical Plants Pack M02P | Banana, monstera, palms | https://sketchfab.com/3d-models/tropical-plants-pack-m02p-2f093afb792742438f0f7ba7eaab90f0 | CC-BY | Free | 46.6k faces, realistic cards | Pending |
+| Poly Haven vegetation + rocks | Trees, fern, grass, shrubs, rocks, distant hills | https://polyhaven.com/a/pachira_aquatica_01 · /a/fern_02 · /a/shrub_01 · /a/rock_moss_set_01 · /a/boulder_01 · /a/mountainside · /a/island_tree_01 | CC0 | Free | island_tree is 1.8–3.7M polys, so it needs impostors or decimation | Pending |
+
+**Materials (CC0):**
+- Rusted corrugated iron: polyhaven rusty_corrugated_iron, corrugated_iron_02, worn_corrugated_iron; ambientCG CorrugatedSteel006A, 007A, 008A
+- Mud and roads: polyhaven muddy_tracks, red_laterite_soil_stones, mud_forest, stony_dirt_path; ambientCG Ground083, Ground054
+- Weathered planks: polyhaven weathered_planks, wood_peeling_paint_weathered
+- Concrete: polyhaven cracked_concrete_wall, concrete_block_wall (hollow blocks), concrete_moss
+- Plaster: polyhaven damaged_plaster, worn_cracked_plaster
+- Nipa-style roofs: polyhaven thatch_roof_angled, reed_roof_04
+- Bark: polyhaven palm_tree_bark
+
+**HDRI (CC0):** https://polyhaven.com/a/mud_road · /a/farmland_overcast · /a/kloofendal_overcast (Overcast Soil is already acquired)
+
+**Custom Blender work:**
+- A small hollow-block house with a GI roof, and a nipa/sawali stilt house. No realistic free game-ready version exists; build them from the CC0 materials above.
+- Banana-leaf cards from a photo atlas.
+- A rust pass on the bicycle.
+
+---
+
+## 02 · The Shadows (forest road + abandoned settlement)
+| Asset | Category | Source | Licence | Price | Specs | Status |
+|---|---|---|---|---|---|---|
+| Abandoned Gothic House | Hero mansion | https://sketchfab.com/3d-models/abandoned-gothic-house-9cf92b2776064207b41055d9fecc9c36 | CC-BY | Free | 178k faces, ivy, moss, broken windows | Pending (**best fit**) |
+| FREE Gothic Victorian Mansion | Mansion (lighter) | https://sketchfab.com/3d-models/free-gothic-victorian-mansion-3d-environment-0149bead014141519fd8a0536c3cd3c7 | CC-BY | Free | 45k faces | Pending |
+| Abandoned House (PBRPX) | Ruined concrete building | https://www.blendkit.com/asset-gallery-detail/7cb3f4f0-2a23-4c7b-abfe-d9587adee35e/ | CC0 | Free | 1.11M faces, 8K (decimate); also works for Survival | Pending |
+| Forest house ruin (scan) | Abandoned wooden house | https://sketchfab.com/3d-models/forest-house-ruin-d19549af2c6c45638cedaa70f805414b | CC-BY | Free | 990k faces (retopology needed) | Pending |
+| St. Guevroc Chapel | Chapel | https://sketchfab.com/3d-models/st-guevroc-chapel-bb4098bdeec84cfbaf0476540662dd37 | CC-BY | Free | 60.6k faces, realistic stone | Pending |
+| Chapel (Kyb3r) / Old English Church | Chapel / church | https://www.blendkit.com/asset-gallery-detail/9334501b-4218-41b6-9f52-3d20e3e43892/ · https://www.blendkit.com/asset-gallery-detail/8c95f407-9b78-4f64-8fd3-baa976494b97/ | Blendkit RF | Free | 8.5k faces / 474k faces, 4K | Pending |
+| gravestone pack | Gravestones | https://sketchfab.com/3d-models/gravestone-pack-915174119a454fa7b2573a9e3bddac8b | CC-BY | Free | 8.3k faces | Pending (**best fit**) |
+| Cemetery Iron Fence & Gate Pack | Cemetery gates | https://sketchfab.com/3d-models/cemetery-iron-fence-gate-pack-07f20cee85cb4ac9b887ecaa73617dd0 | CC-BY | Free | 16.9k faces | Pending |
+| large_iron_gate | Rusted gate | https://polyhaven.com/a/large_iron_gate | CC0 | Free | 38k polys, 3.1 MB as glTF with 1K textures | Pending (**best fit**) |
+| Tropical Graveyard Pack (Kaizen) | Southeast Asian cemetery | https://www.fab.com/listings/2fafcf07-a2e0-4008-905a-9533e051cd2a | Fab | ≈ PHP 4,470 | `.uasset` only (photogrammetry) | Rejected (Unreal-only) |
+| Abandoned Mansion Modular (Krystian Zem) | Mansion kit | https://www.fab.com/listings/79ffb105-7fd0-473d-acb9-88483f76101e | Fab | ≈ PHP 2,554 | Unreal + 3ds Max/Substance sources | Manual (sources may allow conversion) |
+| abandoned house interior (scan) | Ruined room | https://sketchfab.com/3d-models/abandoned-house-interior-c2130293962244d0b8e325919b4cf99d | CC-BY | Free | 619k faces (decimate) | Pending |
+| Poly Haven interior set | Gothic bed and cabinet, old bed frame, rocking chair, grandfather clock, worn bookshelf, books, mirror, chandelier, candlestick | https://polyhaven.com/a/GothicBed_01 · /a/GothicCabinet_01 · /a/old_bed_frame · /a/Rockingchair_01 · /a/vintage_grandfather_clock_01 · /a/wooden_bookshelf_worn · /a/book_encyclopedia_set_01 · /a/ornate_mirror_01 · /a/Chandelier_01 · /a/wooden_candlestick | CC0 | Free | 3–112k polys | Pending |
+| Shrouded Couch (and matching table, chair, figure) | Sheet-covered furniture | https://www.blendkit.com/asset-gallery-detail/36bcc728-6618-4ec4-85f6-e11b1bf14770/ | Blendkit RF | Free | 4k faces, 2K | Pending |
+| Broken chair (scan), book stack, paper boxes, Victorian curtain | Ruined-room props | https://sketchfab.com/3d-models/imperfect-broken-chair-0f5bf969c7404cf1ada939d09f17f350 · https://sketchfab.com/3d-models/medieval-book-stack-0ea43f7fdcb7411cb1123b987f297d41 · https://sketchfab.com/3d-models/old-paper-cardboard-boxes-72a4804f8a4d4de18e59abb60b81c54f · https://sketchfab.com/3d-models/victorian-curtain-3a7e18700d5c4033a67d1d143b3cf64c | CC-BY | Free | 3–99k faces | Pending |
+| Dead trees, stumps, roots, branches, moss (scans) | Dead forest | https://polyhaven.com/a/dead_tree_trunk · /a/dead_tree_trunk_02 · /a/tree_stump_01 · /a/root_cluster_01 · /a/dry_branches_medium_01 · /a/moss_01 | CC0 | Free | 17k–339k polys | Pending |
+| Dead Tree (Calvin Serrano) | Dead tree | https://www.blendkit.com/asset-gallery-detail/d3eb288f-2e01-416f-9098-b7736681d9b4/ | Blendkit RF | Free | 27.5k faces, 8K | Pending |
+| VW Beetle wreck / covered car | Abandoned vehicle | https://www.blendkit.com/asset-gallery-detail/ac9264d6-f1c2-4531-b6de-1dc083415026/ · https://polyhaven.com/a/covered_car | Blendkit RF / CC0 | Free | 16.5k faces, 4K | Pending (trademarked car shape: check) |
+| Abandoned street lights pack / street lamps | Broken streetlights | https://sketchfab.com/3d-models/abandoned-street-lights-pack-c853eca300e8435d8fe9206bcb524eda · https://polyhaven.com/a/street_lamp_01 · /a/street_lamp_02 | CC-BY / CC0 | Free | 22k faces / 20–31k polys | Pending |
+| Rusty oil lanterns | Lanterns | https://sketchfab.com/3d-models/rusty-old-oil-lantern-de28cba29f58414c914298f648da90bf · https://polyhaven.com/a/Lantern_01 | CC-BY / CC0 | Free | 7.6k faces / 34k polys | Pending |
+| Forest mud puddle (scan) | Forest-road ground | https://sketchfab.com/3d-models/forest-mud-puddle-6a92c9c3db254defa8bc31d240ebe1f2 | CC-BY | Free | 318k faces | Pending |
+| Abandoned Mansion (udayjeet) · Abandoned mansion bedroom | Mansion / room | https://sketchfab.com/3d-models/abandoned-mansion-7fa8fd7a219f4fbcaa6532c3b9364739 · https://sketchfab.com/3d-models/abandoned-mansion-bedroom-3a3f5aa2c04840bf8437eec822ec5481 | Sketchfab Free Standard | Free | 244k / 53.7k faces | Pending (licence check) |
+
+**Materials (CC0):**
+- Plaster and wallpaper: polyhaven worn_mossy_plasterwall, damaged_plaster; ambientCG Wallpaper001C (damaged wallpaper)
+- Stone and moss: polyhaven mossy_stone_wall, mossy_rock; ambientCG Moss002
+- Forest floor: polyhaven forest_floor, forest_leaves_02, dry_decay_leaves; ambientCG Ground037, ScatteredLeaves009
+- Rust and bark: ambientCG Rust009, Bark011
+
+**HDRI (CC0):** https://polyhaven.com/a/moonlit_golf · /a/narrow_moonlit_road · /a/qwantani_moonrise
+
+**Custom Blender work:**
+- Torn curtains: cloth simulation with torn alpha masks.
+- Old staircase: built from the plank materials. The realistic free staircases found are all NC-ND licensed, so they're excluded.
+
+**Excluded for licence reasons:** CC-BY-NC and NC-ND models (Old Rusty Car, the RAWscan mansion, the Dilapidated Spiral Staircase, the cemetery angel scans).
 
 ---
 
