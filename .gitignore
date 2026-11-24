@@ -4,6 +4,8 @@ dist-ssr
 *.local
 .DS_Store
 public/models/.island-tmp.glb
+# legacy low-poly island of unknown origin: kept in assets-src/legacy, never published
+public/models/island.glb
 scripts/dev/out
 .chrome-test
 assets-src

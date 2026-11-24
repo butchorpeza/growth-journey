@@ -40,7 +40,12 @@ replaces it.
 
 ## 4. Risks and housekeeping
 
-- **A Chrome test profile is in git history.** Commit `4a29388` added `.chrome-pose/` (a headless-Chrome profile with cookies and cache from automated tests). Commit `7bb8658` removed it and `.gitignore` now excludes `.chrome-*`, but the files are still in history. The repo has **no remote**, so nothing has leaked. Before pushing anywhere, rewrite history (for example `git filter-repo --path .chrome-pose --invert-paths`) or start a fresh history.
+- **Git history cleaned (2026-11-24) before publishing.** These were removed from every commit:
+  - Headless-Chrome test profiles (`.chrome-pose/`, `.chrome-sheet/`, `.chrome-test/`), which held cookies and cache from automated tests.
+  - `public/models/characters/`: the old character with baked Mixamo clips and the three.js Mixamo "Soldier". Mixamo forbids redistributing them.
+  - `public/models/island.glb`: the unused low-poly island of unknown origin.
+
+  The island now lives in `assets-src/legacy/`, which isn't in git. A full pre-cleaning backup is at `../growth-journey-backup-2026-11-24.bundle`.
 - **Licences:** Sketchfab "Free Standard" and Fab assets may forbid redistribution. A GLB served to a browser can be extracted. Each one has to be checked before shipping (tracked in `ASSET_MANIFEST.md`).
 - **Raycast cost:** fine on the test range (0.01 ms). Large chapters need `three-mesh-bvh` or a restricted raycast set.
 - **Browser testing:** the in-app preview pane throttles animation when it isn't focused. Timing-based tests need a focused window, or the fixed-step loop described in `TECHNICAL_ARCHITECTURE.md`.
