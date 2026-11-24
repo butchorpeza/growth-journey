@@ -6,7 +6,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const out = 'scripts/dev/out'; fs.mkdirSync(out, { recursive: true });
 const b = await launch(process.cwd() + '/.chrome-test', 9371);
 await b.viewport(1280, 720);
-await b.goto('http://localhost:4173/?debug', 1500);
+await b.goto('http://localhost:4173/?debug&range', 1500);   // the test range (the game starts in Chapter 01 by default)
 const key = async (code, type) => b.send('Input.dispatchKeyEvent', { type, code, key: code.replace('Key', '').toLowerCase(), windowsVirtualKeyCode: { KeyW: 87, KeyA: 65, KeyS: 83, KeyD: 68, Space: 32, KeyE: 69, ShiftLeft: 16 }[code] });
 const hold = async (codes, ms) => { for (const c of codes) await key(c, 'rawKeyDown'); await sleep(ms); for (const c of codes) await key(c, 'keyUp'); };
 const pos = () => b.eval(`JSON.stringify({p: window.__player.position.toArray().map(v=>+v.toFixed(2)), eye: window.__r3f.camera.position.toArray().map(v=>+v.toFixed(2)), speed:+window.__player.speed.toFixed(2), grounded: window.__player.grounded, mode: window.__game.getGame().mode, prompt: window.__game.getGame().prompt?.label || null})`).then(JSON.parse);

@@ -1,7 +1,7 @@
 /* Everything drawn over the game in HTML: chapter indicator, centre reticle, interaction prompt, narrative panel,
    pause menu, intro card and the "click to look around" hint. Restrained, readable, no game-HUD clutter. */
 import { useEffect, useRef } from 'react';
-import { prototypeChapter } from '../data/chapters';
+import { gameChapters, prototypeChapter } from '../data/chapters';
 import { narrative } from '../data/narrative';
 import { getGame, resetProgress, setGame, updateSettings, useGame } from '../game/GameState';
 import { clearInput, lockPointer } from '../player/PlayerInput';
@@ -10,22 +10,27 @@ export function GameHUD({ surface, onExit }: { surface: () => HTMLElement | null
   const mode = useGame((s) => s.mode);
   const prompt = useGame((s) => s.prompt);
   const locked = useGame((s) => s.pointerLocked);
+  const chapterId = useGame((s) => s.chapter);
+  const progress = useGame((s) => s.loadProgress);
+  const chapter = gameChapters.find((c) => c.id === chapterId) ?? prototypeChapter;
+  const isRange = chapter.id === 'prototype';
   const play = () => { setGame({ mode: 'playing' }); const el = surface(); if (el) void lockPointer(el); };
 
   return (
     <div className="hud">
       <div className="hud__chapter" aria-live="polite">
-        <span className="hud__num">{prototypeChapter.number}</span>
-        <span>{prototypeChapter.title}</span>
-        <span className="hud__tag">Prototype · temporary blockout</span>
+        <span className="hud__num">{chapter.number}</span>
+        <span>{chapter.title}</span>
+        <span className="hud__tag">{isRange ? 'Prototype · temporary blockout' : 'In production'}</span>
       </div>
 
-      {mode === 'loading' && <div className="hud__center"><p className="hud__label">Loading the world…</p></div>}
+      {mode === 'loading' && <div className="hud__center"><p className="hud__label">Loading the world… {progress > 0 && progress < 100 ? `${progress}%` : ''}</p></div>}
 
       {mode === 'intro' && (
         <div className="hud__card" role="dialog" aria-label="Controls">
-          <p className="eyebrow eyebrow--plain">First-person prototype</p>
-          <h2>Movement & look test</h2>
+          <p className="eyebrow eyebrow--plain">{isRange ? 'First-person prototype' : `Chapter ${chapter.number}`}</p>
+          <h2>{isRange ? 'Movement & look test' : chapter.title}</h2>
+          {!isRange && <p className="hud__lede">{chapter.narrative}</p>}
           <ul className="controls">
             <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move</li>
             <li><kbd>Shift</kbd> Sprint</li>

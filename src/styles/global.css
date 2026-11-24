@@ -261,6 +261,7 @@ html.game-open, html.game-open body { overflow: hidden; }
 .hud__reticle.is-active { width: 18px; height: 18px; background: transparent; border-color: rgb(241 243 245 / 0.85); }
 @media (prefers-reduced-motion: reduce) { .hud__reticle { transition: none; } }
 .hud__center { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.hud__lede { margin: -6px 0 18px; max-width: 44ch; color: var(--muted); font-size: 15px; line-height: 1.55; font-style: italic; }
 .hud__label { font: 500 12px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .hud__card { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: min(520px, calc(100vw - 32px)); padding: 30px;
   border-radius: 20px; background: rgb(16 24 32 / 0.82); border: 1px solid var(--line); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }

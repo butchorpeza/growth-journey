@@ -15,6 +15,7 @@ export interface GameState {
   prompt: Prompt | null;       // what "E" would do right now
   reading: string | null;      // narrative entry id open in the panel
   pointerLocked: boolean;
+  loadProgress: number;        // 0…100 while assets load
   settings: Settings;
   save: SaveData;
 }
@@ -25,10 +26,13 @@ const store = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.st
 
 const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const defaultSettings: Settings = { sensitivity: 1, invertY: false, quality: 'high', audio: false, volume: 0.7, reducedMotion: !!prefersReducedMotion };
-const defaultSave: SaveData = { chapter: 'prototype', checkpoint: null, completed: [], discovered: [], restored: [] };
+const defaultSave: SaveData = { chapter: 'survival', checkpoint: null, completed: [], discovered: [], restored: [] };
+
+/** Chapter 01 is the starting world; ?range opens the technical test range instead */
+const startChapter: ChapterId = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('range') ? 'prototype' : 'survival';
 
 let state: GameState = {
-  mode: 'loading', chapter: 'prototype', prompt: null, reading: null, pointerLocked: false,
+  mode: 'loading', chapter: startChapter, prompt: null, reading: null, pointerLocked: false, loadProgress: 0,
   settings: load(SETTINGS_KEY, defaultSettings), save: load(SAVE_KEY, defaultSave),
 };
 const listeners = new Set<() => void>();

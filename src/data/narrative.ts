@@ -3,6 +3,23 @@
 export interface NarrativeEntry { id: string; title: string; body: string; placeholder: boolean }
 
 export const narrative: Record<string, NarrativeEntry> = {
+  // Chapter 01 · Survival — titles describe the object; the text itself is Butch's to write (nothing is invented)
+  'survival-photograph': {
+    id: 'survival-photograph', title: 'An old photograph', placeholder: true,
+    body: 'Placeholder text. A photograph rests on top of the cabinet. Butch will write what it shows and what it means; until then this panel only marks where that memory belongs.',
+  },
+  'survival-lamp': {
+    id: 'survival-lamp', title: 'An oil lamp', placeholder: true,
+    body: 'Placeholder text. An oil lamp lights the table. The words for this object will come from Butch.',
+  },
+  'survival-sungka': {
+    id: 'survival-sungka', title: 'A sungka board', placeholder: true,
+    body: 'Placeholder text. A wooden sungka board, the shells still in its pits. Butch will add the story behind it.',
+  },
+  'survival-road': {
+    id: 'survival-road', title: 'The road out', placeholder: true,
+    body: 'Placeholder text. This is where Chapter 01 ends: the road leaves the village and grows darker. Chapter 02, The Shadows, begins here once it is built.',
+  },
   'test-photograph': {
     id: 'test-photograph', title: 'An old photograph', placeholder: true,
     body: 'Placeholder text. In the finished journey, inspecting an object like this opens a short memory or reflection written by Butch. This one exists to test the interaction system: walk up, press E, read, then close to keep exploring.',

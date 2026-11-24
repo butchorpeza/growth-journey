@@ -46,7 +46,9 @@ src/
   environment/Lighting.tsx           HDRI + a shadow sun that follows the visitor
   interactions/Interactable.tsx      interaction framework (registry + centre-screen raycast)
   interface/GameHUD.tsx              chapter label, reticle, prompt, narrative panel, pause/settings, intro
-  chapters/prototype/TestRange.tsx   TEMPORARY grey blockout for controller tests
+  chapters/prototype/TestRange.tsx   TEMPORARY grey blockout for controller tests (open with ?range)
+  chapters/survival/                 Chapter 01: SurvivalChapter (world, collision, door, interactions, fog, exit),
+                                     Foliage (instanced, distance-culled), terrainMaterial (4-layer splat), layout
 ```
 
 The brief's suggested layout (`components/Experience`, `components/Chapters/*`, `systems/*`) maps onto this one:
@@ -104,14 +106,24 @@ Saved in localStorage, with no personal data:
 - **Progress:** chapter, checkpoint, completed chapters, discovered objects, restored structures.
 - **Settings:** sensitivity, invert Y, reduce motion, graphics quality, audio (off by default).
 
-## 7. Chapter loading (planned, Phase 4)
+## 7. Chapter 01 pipeline
+
+`scripts/blender/build_survival.py` (Blender, headless) → `assets-src/survival/out/` → `scripts/optimize-survival.mjs`
+→ `public/models/survival/{world.glb, foliage.glb, layout.json, ground/*.webp}`.
+
+- **world.glb:** scanned props simplified, meshes merged per material within 24 m cells (so view and shadow culling still work). The door, photograph and terrain are kept as named nodes.
+- **layout.json:** collision boxes, interactables, the door hinge, spawn, exit, lights and foliage instances, all in three.js coordinates.
+- **Terrain:** splat weights in vertex colours (R mud, G laterite, B forest floor, rest grass), shaded by `terrainMaterial.ts`. It's a MeshStandardMaterial patched in `onBeforeCompile`, so PBR, shadows and fog still apply. UVs are rebuilt at load, because the optimiser drops them from an untextured material.
+- **Interactions inside merged meshes** use invisible hit volumes (`colorWrite: false`), so the centre-screen raycast can find them.
+
+## 8. Chapter loading (planned, Phase 4)
 
 One chapter is mounted at a time. A `ChapterManager` will:
 1. Preload selected GLBs of the next chapter during the exit sequence.
 2. Swap scenes under a cinematic transition (fade + camera rail + fog blend).
 3. Dispose the previous chapter's geometries, materials and textures, and clear its GLTF cache entries.
 
-## 8. Device tiers
+## 9. Device tiers
 
 `utils/webgl.ts`, `PerformanceMonitor` and the graphics setting decide the tier:
 - **High:** shadows, DPR ≤ 1.75, full foliage.
@@ -122,7 +134,7 @@ The brief asks for Low / Medium / High. A Medium tier (shadows at 1024, DPR ≤ 
 chapter, when there is something heavy enough to tune it against. Touch-only devices currently get the website plus a
 note. Touch move and look controls are planned for Phase 6.
 
-## 9. Verified controller behaviour (2026-11-24)
+## 10. Verified controller behaviour (2026-11-24)
 
 Measured in the in-app browser with the game loop driven at a fixed 60 fps and real keyboard events:
 

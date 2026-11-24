@@ -15,7 +15,7 @@ export interface GameChapter {
 
 export const gameChapters: GameChapter[] = [
   { id: 'survival', number: '01', title: 'Survival', narrative: 'Every journey begins somewhere. Not every beginning is easy.',
-    theme: 'Poverty, difficult beginnings, survival and limited opportunities.', mood: 'Overcast daylight, soft shadows, muted natural colours.', status: 'planned' },
+    theme: 'Poverty, difficult beginnings, survival and limited opportunities.', mood: 'Overcast daylight, soft shadows, muted natural colours.', status: 'in-production' },
   { id: 'shadows', number: '02', title: 'The Shadows', narrative: 'Some experiences leave places within us that are difficult to revisit.',
     theme: 'Fear, difficult experiences and psychological struggle, told through atmosphere.', mood: 'Moonlight, low-key lighting, cold tones, local warm lights.', status: 'planned' },
   { id: 'rebirth', number: '03', title: 'Rebirth', narrative: 'Somewhere along the way, I began to understand where I was going.',

@@ -30,7 +30,7 @@ replaces it.
 
 | Brief requirement | Current state |
 |---|---|
-| Four environments | None built. Only the test range exists. Chapter 01 has assets on disk and a Blender build script. |
+| Four environments | Chapter 01 Survival is playable (2026-11-24; see `DEVELOPMENT_ROADMAP.md`). Chapters 02–04 are not built. |
 | Cinematic sequences (GSAP) | `cameraOverride` hook exists; no sequences yet. |
 | Low / Medium / High quality | Only High and Low (Performance) exist. |
 | Mobile touch controls | Not built. Touch-only devices get the website with a note. |

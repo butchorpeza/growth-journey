@@ -64,9 +64,9 @@ export function InteractionManager() {
       const e = hit ? owner(hit.object) : null;
       if (e && hit && hit.distance <= e.reach) target = e;
     }
-    const id = target?.id ?? null;
-    if (id !== current.current) {
-      current.current = id;
+    const key = target ? `${target.id}|${target.verb}|${target.label}` : null;
+    if (key !== current.current) {
+      current.current = key;
       setGame({ prompt: target ? { id: target.id, verb: target.verb, label: target.label } : null });
     }
     if (input.interactPressed) {
