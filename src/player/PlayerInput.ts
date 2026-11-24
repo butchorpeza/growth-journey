@@ -13,6 +13,7 @@ export const input = {
   jumpPressed: false,             // edge-triggered: consumed by the controller
   interactPressed: false,         // edge-triggered: consumed by the interaction manager
   lookX: 0, lookY: 0,             // accumulated mouse deltas, consumed by the camera
+  scroll: 0,                      // accumulated scroll (px, + = forward), consumed by the scroll-mode path
   enabled: false,
 };
 
@@ -52,6 +53,11 @@ const onMouseMove = (e: MouseEvent) => {
   input.lookX += e.movementX; input.lookY += e.movementY;
 };
 const onLeave = () => { pointer.over = false; };
+// scroll mode: wheel / trackpad / vertical swipe move along the path (down = forward)
+const onWheel = (e: WheelEvent) => { if (!input.enabled) return; input.scroll += e.deltaMode === 1 ? e.deltaY * 32 : e.deltaY; e.preventDefault(); };
+let touchY: number | null = null;
+const onTouchStart = (e: TouchEvent) => { touchY = e.touches[0]?.clientY ?? null; };
+const onTouchMove = (e: TouchEvent) => { if (!input.enabled || touchY === null) return; const y = e.touches[0].clientY; input.scroll += (touchY - y) * 2; touchY = y; };
 
 export function attachInput(el: HTMLElement) {
   target = el;
@@ -60,7 +66,13 @@ export function attachInput(el: HTMLElement) {
   window.addEventListener('blur', onBlur);
   window.addEventListener('mousemove', onMouseMove);
   document.documentElement.addEventListener('mouseleave', onLeave);
+  el.addEventListener('wheel', onWheel, { passive: false });
+  el.addEventListener('touchstart', onTouchStart, { passive: true });
+  el.addEventListener('touchmove', onTouchMove, { passive: true });
   return () => {
+    el.removeEventListener('wheel', onWheel);
+    el.removeEventListener('touchstart', onTouchStart);
+    el.removeEventListener('touchmove', onTouchMove);
     window.removeEventListener('keydown', onKeyDown);
     window.removeEventListener('keyup', onKeyUp);
     window.removeEventListener('blur', onBlur);
@@ -72,7 +84,7 @@ export function attachInput(el: HTMLElement) {
 
 export function clearInput() {
   keys.clear(); recompute();
-  input.jumpPressed = false; input.interactPressed = false; input.lookX = 0; input.lookY = 0;
+  input.jumpPressed = false; input.interactPressed = false; input.lookX = 0; input.lookY = 0; input.scroll = 0;
 }
 
 export async function lockPointer(el: HTMLElement) {

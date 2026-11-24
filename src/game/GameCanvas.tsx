@@ -1,33 +1,45 @@
 /* The WebGL world: renderer settings, physics world, the current chapter, the invisible player and the camera.
    Only the current chapter is mounted; switching chapters unmounts the old one (R3F disposes its geometry,
-   materials and textures) and loads the next one lazily. */
+   materials and textures) and loads the next one lazily.
+   Rendering: each chapter's Look (rendering/looks.ts) sets sky, sun, height fog and the post-processing grade.
+   Quality — high: 2K shadows, full post chain, DPR ≤ 1.5 · medium: 1K shadows, lighter post, DPR ≤ 1.2 ·
+   low: no shadows, no post (the renderer tone-maps with ACES), DPR 1. The tier is the visitor's choice (High by
+   default) and is never changed automatically; only the render resolution adapts when the frame rate drops. */
 import { AdaptiveDpr, PerformanceMonitor, useProgress } from '@react-three/drei';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
 import { Suspense, useEffect, useState } from 'react';
-import { ACESFilmicToneMapping, PCFSoftShadowMap, SRGBColorSpace } from 'three';
+import { ACESFilmicToneMapping, PCFShadowMap, SRGBColorSpace } from 'three';
+import { Footsteps } from '../audio/Footsteps';
 import { TestRange } from '../chapters/prototype/TestRange';
 import { SURVIVAL_SPAWN, yawTowards } from '../chapters/survival/layout';
 import { SurvivalChapter } from '../chapters/survival/SurvivalChapter';
 import type { ChapterId } from '../data/chapters';
-import { Lighting, type LightingProps } from '../environment/Lighting';
+import { Lighting } from '../environment/Lighting';
 import { InteractionManager } from '../interactions/Interactable';
 import { VIEW } from '../player/movement';
 import { Player } from '../player/Player';
+import { RailController } from '../player/RailController';
+import { SURVIVAL_PATH } from '../chapters/survival/path';
 import { PlayerCamera } from '../player/PlayerCamera';
 import { playerState } from '../player/playerState';
+import { installBVH } from '../rendering/bvh';
+import { Autofocus } from '../rendering/focus';
+import { installHeightFog } from '../rendering/heightFog';
+import { Lightning } from '../rendering/Lightning';
+import { lookFor, type Look } from '../rendering/looks';
+import { PostFX } from '../rendering/PostFX';
 import { getGame, setGame, useGame } from './GameState';
 
-interface ChapterSetup { lighting: LightingProps; spawn: [number, number, number]; spawnYaw: number }
+installHeightFog();   // before any material compiles
+installBVH();         // fast raycasts (interaction look-at, autofocus)
 
-const SETUP: Partial<Record<ChapterId, ChapterSetup>> = {
-  prototype: { lighting: { hdri: 'hdri/overcast_soil_puresky_1k.hdr', sunIntensity: 1.4, envIntensity: 0.9 }, spawn: [0, 0, 6], spawnYaw: 0 },
-  // overcast: a weak, high sun for soft shadows; most light comes from the sky
-  survival: {
-    lighting: { hdri: 'hdri/overcast_soil_puresky_1k.hdr', sunIntensity: 0.75, envIntensity: 1.0, sunDirection: [0.35, 0.9, 0.25], sunColor: '#f2f0ea' },
-    spawn: SURVIVAL_SPAWN.p, spawnYaw: yawTowards(SURVIVAL_SPAWN.p, SURVIVAL_SPAWN.lookAt),
-  },
+const SPAWN: Partial<Record<ChapterId, { p: [number, number, number]; yaw: number }>> = {
+  prototype: { p: [0, 0, 6], yaw: 0 },
+  survival: { p: SURVIVAL_SPAWN.p, yaw: yawTowards(SURVIVAL_SPAWN.p, SURVIVAL_SPAWN.lookAt) },
 };
+
+const DPR = { high: 1.5, medium: 1.2, low: 1.0 } as const;
 
 function LoadWatcher() {
   const { active, progress } = useProgress();
@@ -38,35 +50,60 @@ function LoadWatcher() {
   return null;
 }
 
+/** without post-processing the renderer tone-maps itself (with the Look's exposure); with it, the composer does */
+function RendererToneMapping({ look, post }: { look: Look; post: boolean }) {
+  const gl = useThree((s) => s.gl);
+  useEffect(() => {
+    if (post) return;
+    gl.toneMapping = ACESFilmicToneMapping;
+    gl.toneMappingExposure = 2 ** look.post.exposure;
+  }, [gl, look, post]);
+  return null;
+}
+
 export default function GameCanvas() {
   const quality = useGame((s) => s.settings.quality);
+  const reducedMotion = useGame((s) => s.settings.reducedMotion);
   const chapter = useGame((s) => s.chapter);
-  const setup = SETUP[chapter] ?? SETUP.prototype!;
+  const movement = useGame((s) => s.settings.movement);
+  const look = lookFor(chapter);
+  const spawn = SPAWN[chapter] ?? SPAWN.prototype!;
   const debugPhysics = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('physics');
-  const maxDpr = quality === 'high' ? 1.75 : 1.15;
-  const [dpr, setDpr] = useState(maxDpr);
+  const maxDpr = DPR[quality];
+  const [dpr, setDpr] = useState<number>(maxDpr);
   useEffect(() => setDpr(maxDpr), [maxDpr]);
+  const post = quality !== 'low';
 
   return (
     <Canvas
-      shadows={quality === 'high' ? { type: PCFSoftShadowMap } : false}
+      shadows={quality !== 'low' ? { type: PCFShadowMap } : false}
       dpr={dpr}
-      gl={{ antialias: true, powerPreference: 'high-performance', stencil: false }}
+      gl={{ antialias: !post, powerPreference: 'high-performance', stencil: false }}
       camera={{ fov: VIEW.fov, near: 0.05, far: 600, position: [0, VIEW.eyeHeight, 6] }}
       onCreated={(st) => { const { gl } = st; if (new URLSearchParams(window.location.search).has('debug')) { const w = window as unknown as Record<string, unknown>; w.__r3f = st; w.__player = playerState; w.__game = { getGame, setGame }; } gl.toneMapping = ACESFilmicToneMapping; gl.toneMappingExposure = 1; gl.outputColorSpace = SRGBColorSpace; }}
     >
-      <PerformanceMonitor onDecline={() => setDpr(1)} onIncline={() => setDpr(maxDpr)} flipflops={3} onFallback={() => setDpr(1)} />
+      {/* keep the chosen quality (High by default); only the render resolution adapts when the frame rate drops */}
+      <PerformanceMonitor bounds={() => [45, 58]} flipflops={4}
+        onDecline={() => { if (document.hidden || !document.hasFocus()) return; setDpr((d) => (d > 1.01 ? 1 : 0.85)); }}
+        onIncline={() => setDpr(maxDpr)} onFallback={() => setDpr(1)} />
       <AdaptiveDpr pixelated={false} />
+      <RendererToneMapping look={look} post={post} />
       <Suspense fallback={null}>
-        <Lighting {...setup.lighting} shadows={quality === 'high'} />
+        <Lighting look={look} quality={quality} />
+        {(look.weather?.lightning ?? 0) > 0 && <Lightning look={look} />}
         <Physics gravity={[0, -9.81, 0]} timeStep="vary" debug={debugPhysics}>
           {chapter === 'survival' ? <SurvivalChapter /> : <TestRange />}
-          <Player key={chapter} spawn={setup.spawn} spawnYaw={setup.spawnYaw} />
+          <Player key={chapter} spawn={spawn.p} spawnYaw={spawn.yaw} />
+          {chapter === 'survival' && movement === 'scroll' && <RailController key={`rail-${chapter}`} path={SURVIVAL_PATH} />}
           <PlayerCamera />
           <InteractionManager />
+          <Footsteps />
         </Physics>
+        {quality === 'high' && <Autofocus />}
         <LoadWatcher />
       </Suspense>
+      {/* keyed by quality: the AO pass can't change resolution / MSAA in place, so the chain is rebuilt */}
+      {post && <PostFX key={quality} look={look} quality={quality} reducedMotion={reducedMotion} />}
     </Canvas>
   );
 }

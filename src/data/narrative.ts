@@ -17,8 +17,8 @@ export const narrative: Record<string, NarrativeEntry> = {
     body: 'Placeholder text. A wooden sungka board, the shells still in its pits. Butch will add the story behind it.',
   },
   'survival-road': {
-    id: 'survival-road', title: 'The road out', placeholder: true,
-    body: 'Placeholder text. This is where Chapter 01 ends: the road leaves the village and grows darker. Chapter 02, The Shadows, begins here once it is built.',
+    id: 'survival-road', title: 'A red light at the end of the road', placeholder: true,
+    body: 'Placeholder text. The road ends at a burning red threshold. Beyond it is Chapter 02, The Shadows, which begins here once it is built. Butch will write what this moment means.',
   },
   'test-photograph': {
     id: 'test-photograph', title: 'An old photograph', placeholder: true,

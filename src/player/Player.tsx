@@ -10,6 +10,7 @@ import { GROUPS } from '../physics/CollisionLayers';
 import { MOVE } from './movement';
 import { input } from './PlayerInput';
 import { playerState } from './playerState';
+import { rail } from './rail';
 
 const HALF = MOVE.height / 2 - MOVE.capsuleRadius;   // capsule half-height (cylinder part)
 const CENTER_Y = HALF + MOVE.capsuleRadius;          // capsule centre above the feet
@@ -54,6 +55,7 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number], spawnYaw
       playerState.velocity.set(0, 0, 0); playerState.teleport = null;
     }
 
+    if (rail.active) return;                                     // scroll mode: the path moves the visitor
     const active = getGame().mode === 'playing';
     const v = playerState.velocity;
 

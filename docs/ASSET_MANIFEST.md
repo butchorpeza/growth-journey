@@ -27,15 +27,21 @@ needs a credit (see `CREDITS.md`, to be generated).
 
 | Chapter | Asset | Source | Format | License | Optimization | Status |
 |---|---|---|---|---|---|---|
-| 01 | Overcast HDRIs (overcast_soil_puresky, mud_road, farmland_overcast) | Poly Haven | HDR 1K–2K | CC0 | 1K in game, 2K for reflections only | Acquired |
+| 01 | Overcast HDRIs (overcast_soil_puresky, mud_road, farmland_overcast) | Poly Haven | HDR 1K–2K | CC0 | farmland_overcast 2K (6.5 MB) is the Chapter 01 sky; a 1K export would save ~5 MB | Integrated |
 | 01 | PBR materials: rusty corrugated iron, laterite soil, concrete block, weathered planks, damaged plaster, muddy tracks | Poly Haven | 2K JPG/PNG maps | CC0 | KTX2, ORM packing | Acquired |
 | 01 | Household props (monobloc chair, table, jerrycan, bucket, enamel pot, barrel stove, basket, sungka board, oil lamp, crate, tyre, ladder, spade) | Poly Haven | glTF, 1K | CC0 | meshopt, 512 WebP, scans simplified | Integrated |
 | 01 | Utility poles + cables | Poly Haven | glTF | CC0 | Simplified to 40% | Integrated |
 | 01 | Village build (`survival-world.glb`, `survival-foliage.glb`) | `scripts/blender/build_survival.py` | GLB | CC0 sources | `scripts/optimize-survival.mjs`: simplify scans, merge per 24 m cell, 1K/512 WebP, meshopt → `public/models/survival/` (19 MB + 2.5 MB) | Integrated |
 | 01 | Plant alpha (cut-out) maps for grass_bermuda_01, weed_plant_02, nettle_plant, shrub_02/03/04, calathea_orbifolia_01, anthurium_botany_01 | Poly Haven | JPG 1K (1.1 MB total) | CC0 | Merged into the colour textures by the optimiser | Acquired 2026-11-24 |
-| 01 | Hero weathered house ("Old House Wooden Enterable Rusty") | Sketchfab | glTF / FBX | CC-BY 4.0 | 24k faces, 2K, `COL_*` collision | Pending (needs account) |
+| 01 | Banana Plant by evolveduk | https://sketchfab.com/3d-models/banana-plant-85695b82c7ba4b3497a663616cc3bf25 | GLB, 1K | CC-BY 4.0 (credited) | 4.3k tris; banana.glb 0.7 MB + banana_lod.glb 0.3 MB, instanced groves | Integrated 2026-11-24 |
+| 01 | Sky: Kloofendal 48d Partly Cloudy (Pure Sky) | Poly Haven | HDR 2K, 5.5 MB | CC0 | sun direction measured from the image | Integrated 2026-11-24 |
+| 01 | Footsteps: Kenney Impact Sounds (grass, concrete, wood ×5) | https://kenney.nl/assets/impact-sounds | OGG, 136 KB used | CC0 | — | Integrated 2026-11-24 |
+| 01 | Grass | procedural (fineGrass.ts) | — | own | replaces the scanned grass tufts | Integrated 2026-11-24 |
+| 01 | Hero weathered house ("Old House Wooden Enterable Rusty") | Sketchfab | glTF / FBX | CC-BY 4.0 | 24k faces, 2K, `COL_*` collision | Pending |
 | 01 | Shacks (Old Shack 1, Shack 2) | Blendkit | .blend | CC0 / Blendkit RF | Export GLB, 2K | Pending |
 | 01 | Clothes line, wooden cart, bicycle, corrugated panels | Sketchfab | glTF | CC-BY | Decimate where > 50k faces | Pending |
+| 01 | Tricycle (kotris666, 142k), rusty motorbike (cansuaydin, 82k), jeepney (maclinmacalindong, 74k) | Sketchfab | glTF / GLB | CC-BY 4.0 | Full detail, 1K WebP, meshopt: 1.0 / 1.9 / 0.9 MB | Acquired 2026-11-24 |
+| 01 | Stone portal frame at the end of the road (soidev, 2.9k) | Sketchfab | GLB | CC-BY 4.0 | 1K WebP, 0.4 MB | Acquired 2026-11-24 |
 | 01 | Palms, banana / tropical plants | Sketchfab | glTF | CC-BY | Alpha-tested cards, instancing, impostors far away | Pending |
 | 01 | Trees, ferns, shrubs, rocks, distant hills | Poly Haven | glTF | CC0 | island_tree needs impostors (1.8–3.7M polys) | Pending |
 

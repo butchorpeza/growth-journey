@@ -256,6 +256,33 @@ html.game-open, html.game-open body { overflow: hidden; }
 .hud__num { color: var(--gold); padding: 5px 8px; border: 1px solid rgb(213 164 108 / 0.5); border-radius: 6px; }
 .hud__tag { color: var(--faint); letter-spacing: 0.08em; }
 .hud__note { position: absolute; left: 28px; bottom: 22px; margin: 0; font-size: 12px; color: rgb(241 243 245 / 0.6); pointer-events: none; text-shadow: 0 1px 6px rgb(0 0 0 / 0.6); }
+/* interaction markers: white diamonds over interactive objects */
+.markers { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.marker { position: absolute; left: 0; top: 0; width: 12px; height: 12px; border: 1.5px solid rgb(255 255 255 / 0.95);
+  box-shadow: 0 0 6px rgb(0 0 0 / 0.45); opacity: 0; transition: opacity 0.3s ease, width 0.2s ease, height 0.2s ease, background-color 0.2s ease; }
+.marker.is-visible { opacity: 0.85; animation: marker-pulse 2.4s ease-in-out infinite; }
+.marker.is-active { width: 16px; height: 16px; background: #fff; opacity: 1; box-shadow: 0 0 14px rgb(255 255 255 / 0.85), 0 0 4px rgb(0 0 0 / 0.5); animation: none; }
+@keyframes marker-pulse { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .marker.is-visible { animation: none; } }
+.controls__diamond { display: inline-block; width: 9px; height: 9px; margin-left: 4px; border: 1.5px solid currentColor; transform: rotate(45deg); vertical-align: 1px; }
+/* movement choice on the intro card */
+.movement { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 14px; pointer-events: auto; }
+.movement button { display: grid; gap: 2px; padding: 10px 12px; text-align: left; border-radius: 12px; border: 1px solid rgb(241 243 245 / 0.18); background: rgb(241 243 245 / 0.04); color: var(--white); cursor: pointer; font: inherit; }
+.movement button span { color: var(--muted); font-size: 12px; }
+.movement button[aria-checked="true"] { border-color: #c9a26f; background: rgb(201 162 111 / 0.12); }
+/* sound switch on the intro card */
+.sound-toggle { display: flex; align-items: center; gap: 10px; margin: 4px 0 18px; padding: 8px 14px; border-radius: 999px; border: 1px solid rgb(241 243 245 / 0.18); background: rgb(241 243 245 / 0.04); color: var(--white); font: 500 14px/1.2 var(--f); cursor: pointer; pointer-events: auto; }
+.sound-toggle:hover { border-color: rgb(241 243 245 / 0.35); }
+.sound-toggle__dot { width: 8px; height: 8px; border-radius: 50%; background: rgb(241 243 245 / 0.3); }
+.sound-toggle[aria-pressed="true"] .sound-toggle__dot { background: #8fd18b; box-shadow: 0 0 8px #8fd18b; }
+.sound-toggle__hint { color: var(--muted); font-size: 12px; font-weight: 400; }
+/* lens vignette over the game on every quality tier (the post-processing vignette adds to it on Medium/High) */
+.hud__vignette { position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 78% 74% at 50% 50%, transparent 50%, rgb(0 0 0 / 0.26) 80%, rgb(0 0 0 / 0.58) 100%); }
+/* cinematic letterbox: 2.39:1 bars on landscape screens, each capped at 12% of the height for tall windows */
+.hud__bars span { position: absolute; left: 0; right: 0; height: clamp(0px, calc((100vh - 100vw / 2.39) / 2), 12vh); background: #000; pointer-events: none; }
+.hud__bars span:first-child { top: 0; }
+.hud__bars span:last-child { bottom: 0; }
 /* first-person reticle: a quiet dot that opens into a ring when an interactable is in reach */
 .hud__reticle { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; translate: -50% -50%; border-radius: 50%;
   background: rgb(241 243 245 / 0.7); box-shadow: 0 0 4px rgb(0 0 0 / 0.5); pointer-events: none;

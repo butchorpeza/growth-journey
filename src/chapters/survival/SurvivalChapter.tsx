@@ -5,21 +5,31 @@
    - collision: the terrain as a triangle mesh + 161 simplified boxes from layout.json (render meshes are never used)
    - the front door of house A on its hinge (E opens / closes it; its collider swings with it)
    - interactable objects (oil lamp, old photograph, sungka board) through invisible hit volumes
-   - the oil lamp's warm light, overcast fog, and the road out of the village (chapter exit) */
+   - the oil lamp's warm light and the road out of the village (chapter exit). Sky, sun, fog and the colour
+     grade come from the chapter's Look (rendering/looks.ts). */
 import { useGLTF } from '@react-three/drei';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { CuboidCollider, RigidBody, TrimeshCollider, type RapierRigidBody } from '@react-three/rapier';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BufferAttribute, FileLoader, FogExp2, Group, Matrix4, MeshBasicMaterial, Quaternion, TextureLoader, Vector3, type Mesh, type Object3D } from 'three';
+import { BufferAttribute, Color, FileLoader, Group, type PointLight, Matrix4, MeshBasicMaterial, Quaternion, TextureLoader, Vector3, type Mesh, type Object3D } from 'three';
 import { discover, getGame, setGame, useGame } from '../../game/GameState';
 import { Interactable } from '../../interactions/Interactable';
 import { GROUPS } from '../../physics/CollisionLayers';
+import { buildBoundsTrees } from '../../rendering/bvh';
+import { lookFor } from '../../rendering/looks';
+import { Rain } from '../../rendering/Rain';
+import { applyWeather, buildShelterMap, weather } from '../../rendering/weather';
 import { playerState } from '../../player/playerState';
+import { rail } from '../../player/rail';
+import { audio } from '../../audio/AudioEngine';
 import { Foliage } from './Foliage';
 import { SURVIVAL_BASE, type SurvivalLayout } from './layout';
+import { Bananas } from './Bananas';
+import { Houses, usePlacedHouses } from './Houses';
+import { Portal, usePortalFrame } from './Portal';
+import { HouseLights, usePlacedVehicles, Vehicles } from './Props';
+import { scatter } from './scatter';
 import { createTerrainMaterial, terrainTextureUrls } from './terrainMaterial';
-
-export const SURVIVAL_FOG = { color: '#a9aeab', density: 0.0135 };
 
 /** hit volume for the interaction raycast: never drawn, but still hit by rays */
 const HIT = new MeshBasicMaterial({ colorWrite: false, depthWrite: false });
@@ -70,6 +80,11 @@ function prepare(world: Object3D, layout: SurvivalLayout, terrainMat: Mesh['mate
       part.removeFromParent(); local.decompose(part.position, part.quaternion, part.scale); door.add(part);
     }
   }
+  // weather (cloud shadows, wetness, puddles on the terrain) on every lit surface, after the terrain material is set
+  const lit = (o: Object3D) => { const m = o as Mesh; if (m.isMesh) (Array.isArray(m.material) ? m.material : [m.material]).forEach((mm) => applyWeather(mm, { puddles: o === t })); };
+  world.traverse(lit); door?.traverse(lit);
+  buildBoundsTrees(world);                                 // fast look-at / autofocus raycasts
+  if (door) buildBoundsTrees(door);
   const prepared = { terrain: t, door, verts, index };
   world.userData.prepared = prepared;
   return prepared;
@@ -83,13 +98,27 @@ export function SurvivalChapter() {
   const terrainMat = useMemo(() => createTerrainMaterial(ground), [ground]);
   const prepared = useMemo(() => prepare(world, layout, terrainMat), [world, layout, terrainMat]);
   const quality = useGame((s) => s.settings.quality);
-
-  // overcast haze: distance fog in the same grey as the sky's horizon
-  const scene = useThree((s) => s.scene);
+  // weather for this chapter's Look; the shelter map (what is under a roof) is rendered once per visit
+  const look = lookFor('survival');
+  const gl = useThree((st) => st.gl);
+  const shelter = useMemo(() => buildShelterMap(gl, world, [2, 8], 170), [gl, world]);
   useEffect(() => {
-    const prev = scene.fog; scene.fog = new FogExp2(SURVIVAL_FOG.color, SURVIVAL_FOG.density);
-    return () => { scene.fog = prev; };
-  }, [scene]);
+    weather.wetness.value = look.weather?.wetness ?? 0;
+    weather.cloudStrength.value = look.weather?.cloudShadows ?? 0;
+  }, [look]);
+  useFrame((_, dt) => { weather.time.value += Math.min(dt, 0.1); });
+  // detailed Sketchfab houses (replace houses B and C, plus one by the road); the scatter keeps clear of them
+  const houses = usePlacedHouses(prepared.terrain);
+  const vehicles = usePlacedVehicles(prepared.terrain);
+  const portalFrame = usePortalFrame(prepared.terrain);
+  const scatterLayout = useMemo(() => ({ ...layout, colliders: [...layout.colliders, ...houses.map((h) => h.box), ...vehicles.map((v) => v.box), portalFrame.box] }), [layout, houses, vehicles, portalFrame]);
+  // banana groves + extra grass, placed on the terrain (needs the terrain's BVH from prepare())
+  const extra = useMemo(() => (prepared.terrain ? scatter(prepared.terrain, scatterLayout) : { bananasNear: [], bananasFar: [], grass: {} }), [prepared, scatterLayout]);
+  const planted = useMemo(() => {
+    const foliage = { ...layout.foliage };
+    for (const [v, list] of Object.entries(extra.grass)) foliage[v] = [...(foliage[v] ?? []), ...list];
+    return { ...layout, foliage };
+  }, [layout, extra]);
 
   return (
     <group>
@@ -111,12 +140,18 @@ export function SurvivalChapter() {
         </Interactable>
       ))}
 
-      {layout.lights.map((l, i) => (
-        <pointLight key={i} position={l.p} color={l.color} intensity={l.intensity * 2.2} distance={l.distance} decay={2} />
-      ))}
+      {layout.lights.map((l, i) => <OilLamp key={i} p={l.p} color={l.color} intensity={l.intensity * (look.practicals ? 4 : 2.2)} distance={l.distance} />)}
+      {(look.practicals ?? 0) > 0 && <Practicals strength={look.practicals!} />}
 
-      <Foliage layout={layout} quality={quality} />
+      <Houses houses={houses} />
+      <HouseLights houses={houses} strength={look.practicals ?? 0.5} quality={quality} />
+      <Vehicles vehicles={vehicles} />
+      <Foliage layout={planted} quality={quality} />
+      <Bananas near={extra.bananasNear} far={extra.bananasFar} quality={quality} />
+      <Portal frame={portalFrame} />
       <ChapterExit layout={layout} />
+      {(look.weather?.rain ?? 0) > 0 && <Rain intensity={look.weather!.rain} quality={quality} />}
+      <RoofRain heightAt={shelter.heightAt} active={(look.weather?.rain ?? 0) > 0} />
     </group>
   );
 }
@@ -133,6 +168,8 @@ function Door({ layout, parts }: { layout: SurvivalLayout; parts: Group }) {
   const toggle = useCallback(() => setOpen((o) => !o), []);
 
   useFrame((_, dt) => {
+    // scroll mode: the door opens by itself as the path reaches it (E still works)
+    if (rail.active && !open && Math.hypot(playerState.position.x - (d.hinge[0] + d.width / 2), playerState.position.z - d.hinge[2]) < 2.4) setOpen(true);
     const target = open ? d.openYaw : d.closedYaw;
     yaw.current += (target - yaw.current) * (1 - Math.exp(-4 * Math.min(dt, 1 / 30)));
     if (pivot.current) pivot.current.rotation.y = yaw.current;
@@ -154,6 +191,48 @@ function Door({ layout, parts }: { layout: SurvivalLayout; parts: Group }) {
       </RigidBody>
     </>
   );
+}
+
+/** the oil lamp: a warm point light with a slow, irregular flame flicker */
+function OilLamp({ p, color, intensity, distance }: { p: [number, number, number]; color: string; intensity: number; distance: number }) {
+  const ref = useRef<PointLight>(null);
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    if (ref.current) ref.current.intensity = intensity * (0.9 + 0.06 * Math.sin(t * 7.3) + 0.04 * Math.sin(t * 13.1 + 1.7) + 0.03 * Math.sin(t * 2.1));
+  });
+  return <pointLight ref={ref} position={p} color={color} intensity={intensity} distance={distance} decay={2} />;
+}
+
+/** the village's few electric lights at night: a bulb on the pole by the gate, one under the sungka shelter, and
+ *  lamps on the road's utility poles. Warm sodium-like light; the bulbs are HDR-bright so they bloom in the rain. */
+const PRACTICALS: { p: [number, number, number]; intensity: number; distance: number }[] = [
+  { p: [3.1, 4.4, 4.2], intensity: 16, distance: 16 },      // pole by the yard gate
+  { p: [3.4, 2.25, 26.5], intensity: 7, distance: 9 },      // bulb hanging in the sungka shelter
+  { p: [22.2, 5.2, 36.0], intensity: 18, distance: 17 },    // road poles
+  { p: [27.9, 5.2, 47.5], intensity: 18, distance: 17 },
+  { p: [32.3, 5.2, 58.5], intensity: 18, distance: 17 },
+];
+const BULB = new MeshBasicMaterial({ color: new Color('#ffb46a').multiplyScalar(30), toneMapped: false, fog: false });
+function Practicals({ strength }: { strength: number }) {
+  return (
+    <>
+      {PRACTICALS.map((l, i) => (
+        <group key={i} position={l.p}>
+          <pointLight color="#ffb06a" intensity={l.intensity * strength} distance={l.distance} decay={2} />
+          <mesh material={BULB} raycast={() => {}}><sphereGeometry args={[0.07, 12, 8]} /></mesh>
+        </group>
+      ))}
+    </>
+  );
+}
+
+/** tells the audio engine when the visitor stands under a roof in the rain (rain drums on the corrugated iron) */
+function RoofRain({ heightAt, active }: { heightAt: (x: number, z: number) => number; active: boolean }) {
+  useFrame(() => {
+    const p = playerState.position;
+    audio.setRoof(active && heightAt(p.x, p.z) > p.y + 2 ? 1 : 0);
+  });
+  return null;
 }
 
 /** reaching the end of the road out of the village ends the chapter (for now: a narrative panel) */

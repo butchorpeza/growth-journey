@@ -1,8 +1,8 @@
 /* First-person camera: the visitor's eyes, at eye height inside the invisible capsule.
    - Mouse look with adjustable sensitivity, optional inverted Y and a ±85° pitch limit: pointer lock where the
      browser allows it, otherwise hover look (the view follows the mouse; holding it near an edge keeps turning).
-   - Restrained head bob tied to the distance actually walked (fades in and out with speed), a small dip on hard
-     landings and a slightly wider FOV at full sprint. All three are off with reduced motion.
+   - A 55° cinematic lens; restrained head bob tied to the distance actually walked, a small dip on hard landings,
+     a slightly wider FOV at full sprint and a faint handheld drift. All of the motion is off with reduced motion.
    - The eye eases up and down stairs instead of snapping with each Rapier autostep.
    - The camera sits inside the capsule, which is wider than the near plane, so it can't see through walls.
    - A cinematic mode (camera rails driven by GSAP) can take over through `cameraOverride`. */
@@ -13,6 +13,7 @@ import { getGame } from '../game/GameState';
 import { cameraOverride } from './cameraOverride';
 import { MOVE, VIEW } from './movement';
 import { input, pointer } from './PlayerInput';
+import { RAIL, rail } from './rail';
 import { playerState } from './playerState';
 
 const PITCH = MathUtils.degToRad(VIEW.pitchLimit);
@@ -20,7 +21,7 @@ const MAX_EYE_LAG = 0.3;   // m: the eased eye never trails the body by more tha
 
 export function PlayerCamera() {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
-  const s = useRef({ eyeY: NaN, phase: 0, amp: 0, dip: 0, dipTarget: 0 });
+  const s = useRef({ eyeY: NaN, phase: 0, amp: 0, dip: 0, dipTarget: 0, t: 0 });
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 1 / 30);
@@ -35,8 +36,16 @@ export function PlayerCamera() {
       return;
     }
 
-    // look input (consumed every frame)
-    if (g.mode === 'playing') {
+    // look input (consumed every frame). Scroll mode: the mouse glances around the path's composed angle.
+    if (rail.active) {
+      if (g.mode === 'playing') {
+        const k = VIEW.lookSpeed * g.settings.sensitivity, inv = g.settings.invertY ? -1 : 1;
+        rail.offsetYaw = MathUtils.clamp(rail.offsetYaw - input.lookX * k, -RAIL.glanceYaw, RAIL.glanceYaw);
+        rail.offsetPitch = MathUtils.clamp(rail.offsetPitch - input.lookY * k * inv, -RAIL.glancePitch, RAIL.glancePitch);
+      }
+      playerState.camYaw = rail.baseYaw + rail.offsetYaw;
+      playerState.camPitch = rail.basePitch + rail.offsetPitch;
+    } else if (g.mode === 'playing') {
       const k = VIEW.lookSpeed * g.settings.sensitivity;
       const inv = g.settings.invertY ? -1 : 1;
       playerState.camYaw -= input.lookX * k;
@@ -73,7 +82,12 @@ export function PlayerCamera() {
     st.dip = MathUtils.lerp(st.dip, st.dipTarget, 1 - Math.exp(-20 * dt));
 
     const yaw = playerState.camYaw;
-    camera.rotation.set(playerState.camPitch, yaw, 0, 'YXZ');
+    // handheld: slow, layered drift of a fraction of a degree, like an operator holding the shot
+    st.t += dt;
+    const hh = still ? 0 : VIEW.handheld, t = st.t;
+    const hp = (Math.sin(t * 0.63) * 0.7 + Math.sin(t * 1.71 + 1.3) * 0.3) * hh;
+    const hy = (Math.sin(t * 0.47 + 0.7) * 0.75 + Math.sin(t * 1.33) * 0.25) * hh;
+    camera.rotation.set(playerState.camPitch + hp, yaw + hy, Math.sin(t * 0.37) * hh * 0.6, 'YXZ');
     camera.position.set(p.x + Math.cos(yaw) * bobX, st.eyeY + bobY - st.dip, p.z - Math.sin(yaw) * bobX);
 
     // a touch wider at full sprint

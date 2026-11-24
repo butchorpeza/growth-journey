@@ -47,8 +47,10 @@ src/
   interactions/Interactable.tsx      interaction framework (registry + centre-screen raycast)
   interface/GameHUD.tsx              chapter label, reticle, prompt, narrative panel, pause/settings, intro
   chapters/prototype/TestRange.tsx   TEMPORARY grey blockout for controller tests (open with ?range)
-  chapters/survival/                 Chapter 01: SurvivalChapter (world, collision, door, interactions, fog, exit),
-                                     Foliage (instanced, distance-culled), terrainMaterial (4-layer splat), layout
+  chapters/survival/                 Chapter 01: SurvivalChapter (world, collision, door, interactions, exit),
+                                     Foliage (instanced, distance-culled), fineGrass (procedural carabao grass),
+                                     Bananas (instanced groves), scatter (terrain-aware placement),
+                                     terrainMaterial (4-layer splat), layout
 ```
 
 The brief's suggested layout (`components/Experience`, `components/Chapters/*`, `systems/*`) maps onto this one:
@@ -67,7 +69,7 @@ character controller. Nothing is rendered for it.
 - Rapier slides the capsule along walls. Its velocity is deliberately not cut on a blocked move, because cutting it breaks autostep.
 
 **Eyes** (`PlayerCamera.tsx`), tuned in `VIEW` in `movement.ts`:
-- Eye height is 1.62 m. FOV is 70°, plus up to 4° at full sprint.
+- Eye height is 1.62 m. FOV is 55° (a cinematic lens), plus up to 3° at full sprint.
 - Mouse look needs no button. Where the browser allows it, "Start exploring" takes pointer lock (cursor hidden, unlimited turning; Esc pauses). Otherwise **hover look** applies: the view follows the mouse while it's over the game, and holding the cursor in the outer 15% of the screen keeps turning (up to 1.9 rad/s sideways, 0.8 rad/s up and down, eased in across the edge band). The cursor is hidden over the game while playing (the centre reticle replaces it) and comes back for the intro, pause menu and reading panels. Sensitivity and inverted Y are in the pause menu. Pitch is limited to ±85°.
 - Head bob makes one cycle per stride, driven by the distance actually travelled, so walking into a wall doesn't bob. Peak-to-peak it measures about 4.8 cm walking and 6.8 cm sprinting. It fades in and out with speed.
 - Hard landings give a small view dip, scaled by fall speed.
@@ -116,25 +118,49 @@ Saved in localStorage, with no personal data:
 - **Terrain:** splat weights in vertex colours (R mud, G laterite, B forest floor, rest grass), shaded by `terrainMaterial.ts`. It's a MeshStandardMaterial patched in `onBeforeCompile`, so PBR, shadows and fog still apply. UVs are rebuilt at load, because the optimiser drops them from an untextured material.
 - **Interactions inside merged meshes** use invisible hit volumes (`colorWrite: false`), so the centre-screen raycast can find them.
 
-## 8. Chapter loading (planned, Phase 4)
+## 8. Rendering: cinematic look (`src/rendering/`)
+
+Each chapter has a **Look** (`looks.ts`), similar to an ENB preset. It bundles sky (HDRI, environment and background intensity), sun, height fog and the post-processing grade. Chapters 02–04 have presets prepared from the brief's lighting direction.
+
+| Layer | What it does |
+|---|---|
+| `PostFX.tsx` | N8AO ambient occlusion → depth of field with autofocus (High) → bloom → exposure + white balance → AgX/ACES tone mapping → film grade → chromatic fringe → vignette → grain |
+| `grading.ts` | Custom shaders. **ExposureBalance** (before tone mapping): exposure in stops plus temperature/tint. **FilmGrade** (after): lift/gamma/gain, contrast, saturation, hue-only split toning. |
+| `focus.ts` | A focus puller. A BVH raycast at the centre of frame racks focus smoothly, faster in than out. |
+| `heightFog.ts` | Replaces three.js's exponential fog for all materials with analytically integrated height fog: haze in the valleys that thins with altitude. |
+| `wind.ts` | Vertex sway for every instanced plant, with a per-instance phase and travelling gusts. |
+| `clouds.ts` | Weather: cloud shadows. Patched into each material's sunlight term (sky light untouched). Drifting noise cells dim direct sun by up to 75%. |
+| Sun FX (`PostFX.tsx`) | A lens flare that fades when the sun is blocked or off-frame (a BVH ray toward the sun), plus god rays from an HDR sun disc aligned with the sky's sun. |
+| Bananas (`chapters/survival/Bananas.tsx`) | Village clumps use the full model with shadows. The hills (about 2,400+ plants) are 3D within 40 m and **impostors** beyond: two crossed cards with a picture of the real model, rendered from it at load. That's 4 triangles instead of about 2,500. |
+| `src/audio/` | Web Audio. Footsteps are Kenney recordings chosen by surface (a raycast underfoot: concrete, wood, earth) and triggered by stride distance, with a landing thump. Ambience is generated live: breeze, cicadas, birdsong. Muted until the visitor turns it on. |
+| `bvh.ts` | three-mesh-bvh accelerated raycasts. In the village the look-at ray went from 15–52 ms to 0.2–0.5 ms per frame. |
+| Lighting | Texel-snapped sun shadows (no shimmer), PCF radius for soft overcast penumbrae, 4096² map on High. |
+| Camera | 55° cinematic lens, faint handheld drift, optional 2.39:1 letterbox (off by default: full screen; bars capped at 12% of the height each). |
+
+**Quality tiers** (tuned 2026-11-24 for integrated GPUs: the same village view went from 35 ms to 6.6 ms per frame on High; below ~45 fps the resolution and then the tier step down automatically while the window is focused):
+- **High:** everything above, 2× MSAA, 2048² shadows, DPR ≤ 1.5.
+- **Medium:** AO at "performance" sampling, no depth of field / light rays / flare, SMAA, 1024² shadows, DPR ≤ 1.2.
+- **Low:** no post-processing or shadows; the renderer tone-maps with ACES at the Look's exposure.
+
+The post chain is rebuilt when quality changes. n8ao's half-resolution mode isn't used, because its render targets break on three r187.
+
+**Known limits.** The remaining "CG" look comes mostly from the assets: box-modelled walls with perfectly straight edges, and uniform tiling textures. Closing that gap needs photoscanned or hand-modelled hero buildings (see the roadmap), not more post-processing. Screen-space GI and motion blur are not included. **Ray tracing / DLSS:** browsers expose neither hardware ray tracing nor NVIDIA DLSS (DLSS is a native DirectX/Vulkan SDK for RTX GPUs), so the realistic browser equivalents are screen-space effects (AO, reflections, GI) and, for still images, a progressive path tracer (e.g. three-gpu-pathtracer) as a "photo mode".
+
+## 9. Chapter loading (planned, Phase 4)
 
 One chapter is mounted at a time. A `ChapterManager` will:
 1. Preload selected GLBs of the next chapter during the exit sequence.
 2. Swap scenes under a cinematic transition (fade + camera rail + fog blend).
 3. Dispose the previous chapter's geometries, materials and textures, and clear its GLTF cache entries.
 
-## 9. Device tiers
+## 10. Device tiers
 
-`utils/webgl.ts`, `PerformanceMonitor` and the graphics setting decide the tier:
-- **High:** shadows, DPR ≤ 1.75, full foliage.
-- **Low:** no shadows, DPR ≤ 1.15, reduced foliage and particles.
-- **Off:** HTML website only.
-
-The brief asks for Low / Medium / High. A Medium tier (shadows at 1024, DPR ≤ 1.4) is planned with the first real
-chapter, when there is something heavy enough to tune it against. Touch-only devices currently get the website plus a
+`utils/webgl.ts` decides whether the 3D journey is offered at all ("off" means the HTML website only). Inside the game the
+graphics setting picks **High / Medium / Low** (see section 8), and `PerformanceMonitor` steps resolution and then
+the tier down automatically when the frame rate stays below ~45 fps. Touch-only devices currently get the website plus a
 note. Touch move and look controls are planned for Phase 6.
 
-## 10. Verified controller behaviour (2026-11-24)
+## 11. Verified controller behaviour (2026-11-24)
 
 Measured in the in-app browser with the game loop driven at a fixed 60 fps and real keyboard events:
 

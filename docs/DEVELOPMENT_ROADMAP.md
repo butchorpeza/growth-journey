@@ -35,7 +35,7 @@ renders: it needs real assets, materials, lighting, collision and functional exp
 1. Butch's sign-off on the look, plus the text for the photograph, lamp, sungka board and the road.
 2. The darkening path toward Chapter 02 (the brief's transition). The road currently just ends.
 3. Hero assets the scans can't provide: the Sketchfab weathered house, palms and banana plants (needs Butch's Sketchfab account).
-4. Better sky: swap the pure-sky HDRI for `farmland_overcast` (on disk, 2K; needs a 1K export).
+4. ✅ Photographic sky (`farmland_overcast`) and the cinematic rendering pass (post-processing, height fog, DOF, wind) are done. Load size grew to ≈ 50 MB (2K building textures + 2K HDRI); KTX2 compression is the next fix.
 5. Performance: KTX2 textures (needs `toktx`), LODs for the scanned rocks, and the Medium quality tier.
 6. Audio: wind, distant roosters, footsteps on mud and wood (opt-in).
 

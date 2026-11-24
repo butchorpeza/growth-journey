@@ -19,8 +19,9 @@ export const MOVE = {
 
 export const VIEW = {
   eyeHeight: 1.62,     // m above the feet
-  fov: 70,
-  sprintFov: 4,        // extra degrees at full sprint (subtle)
+  fov: 55,             // vertical degrees: a cinematic lens (~32 mm full-frame), narrower than a game's 70°
+  sprintFov: 3,        // extra degrees at full sprint (subtle)
+  handheld: 0.0018,    // radians: faint operator drift (off with reduced motion)
   pitchLimit: 85,      // degrees up / down
   lookSpeed: 0.0022,   // radians per mouse pixel at sensitivity 1
   edgeTurn: {          // hover look (mouse not locked): holding the cursor near an edge keeps turning

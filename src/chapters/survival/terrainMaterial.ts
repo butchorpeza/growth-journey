@@ -61,7 +61,14 @@ vec3 g0 = texture2D(map, tuv * ${TILE[0].toFixed(3)}).rgb;
 vec3 g1 = texture2D(tDiff1, tuv * ${TILE[1].toFixed(3)}).rgb;
 vec3 g2 = texture2D(tDiff2, tuv * ${TILE[2].toFixed(3)}).rgb;
 vec3 g3 = texture2D(tDiff3, tuv * ${TILE[3].toFixed(3)}).rgb;
-vec3 ground = g0 * splatW.x + g1 * splatW.y + g2 * splatW.z + g3 * splatW.w;
+// the hills are 'forest floor' in the splat map: in this tropical setting most of it is overgrown, so the layer is
+// mostly green grass with patches of leaf litter showing through
+float overgrown = smoothstep(0.35, 0.65, tNoise(vTerrainWorld.xz * 0.08) * 0.7 + tNoise(vTerrainWorld.xz * 0.31) * 0.3);
+// the grass scan is dry tan; grade it to living tropical green, keeping drier patches where the noise says so
+float lush = smoothstep(0.25, 0.75, tNoise(vTerrainWorld.xz * 0.05 + 3.7));
+vec3 green = g3 * mix(vec3(0.78, 0.92, 0.6), vec3(0.56, 0.96, 0.42), lush);
+vec3 forestFloor = mix(g2, green, 0.6 + 0.35 * overgrown);
+vec3 ground = g0 * splatW.x + g1 * splatW.y + forestFloor * splatW.z + green * splatW.w;
 float macro = tNoise(vTerrainWorld.xz * 0.045) * 0.6 + tNoise(vTerrainWorld.xz * 0.13) * 0.4;
 ground *= mix(0.82, 1.08, macro);                                // large damp / dry patches hide the tiling
 diffuseColor.rgb *= ground;`)
