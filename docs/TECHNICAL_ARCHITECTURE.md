@@ -38,7 +38,7 @@ src/
   player/
     Player.tsx                       invisible capsule + Rapier character controller
     PlayerCamera.tsx                 first-person eyes: look, head bob, step easing, sprint FOV
-    PlayerInput.ts                   keyboard + mouse (pointer lock, drag fallback)
+    PlayerInput.ts                   keyboard + mouse (pointer lock, or hover look with edge turning)
     movement.ts                      MOVE (body tuning) and VIEW (camera tuning)
     playerState.ts                   per-frame shared state (position, velocity, view angles)
     cameraOverride.ts                hook for GSAP cinematic camera rails
@@ -68,7 +68,7 @@ character controller. Nothing is rendered for it.
 
 **Eyes** (`PlayerCamera.tsx`), tuned in `VIEW` in `movement.ts`:
 - Eye height is 1.62 m. FOV is 70°, plus up to 4° at full sprint.
-- Mouse look uses pointer lock, with drag-to-look as the fallback. Sensitivity and inverted Y are in the pause menu. Pitch is limited to ±85°.
+- Mouse look needs no button. Where the browser allows it, "Start exploring" takes pointer lock (cursor hidden, unlimited turning; Esc pauses). Otherwise **hover look** applies: the view follows the mouse while it's over the game, and holding the cursor in the outer 15% of the screen keeps turning (up to 1.9 rad/s sideways, 0.8 rad/s up and down, eased in across the edge band). The cursor is hidden over the game while playing (the centre reticle replaces it) and comes back for the intro, pause menu and reading panels. Sensitivity and inverted Y are in the pause menu. Pitch is limited to ±85°.
 - Head bob makes one cycle per stride, driven by the distance actually travelled, so walking into a wall doesn't bob. Peak-to-peak it measures about 4.8 cm walking and 6.8 cm sprinting. It fades in and out with speed.
 - Hard landings give a small view dip, scaled by fall speed.
 - The eye eases up and down stairs instead of snapping with each autostep. It never lags more than 0.3 m behind the body.

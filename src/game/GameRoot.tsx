@@ -16,7 +16,7 @@ export function GameRoot({ onExit }: { onExit: () => void }) {
   const exit = () => { document.exitPointerLock?.(); onExit(); };
 
   return (
-    <div className="game" role="application" aria-label="The Growth Journey, interactive first-person experience">
+    <div className={`game${mode === 'playing' ? ' game--playing' : ''}`} role="application" aria-label="The Growth Journey, interactive first-person experience">
       <div ref={surface} className="game__surface" onClick={() => { if (mode === 'playing' && !document.pointerLockElement && surface.current) void lockPointer(surface.current); }}>
         <Suspense fallback={null}><GameCanvas /></Suspense>
       </div>

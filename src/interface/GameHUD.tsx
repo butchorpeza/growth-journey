@@ -1,6 +1,6 @@
 /* Everything drawn over the game in HTML: chapter indicator, centre reticle, interaction prompt, narrative panel,
    pause menu, intro card and the "click to look around" hint. Restrained, readable, no game-HUD clutter. */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gameChapters, prototypeChapter } from '../data/chapters';
 import { narrative } from '../data/narrative';
 import { getGame, resetProgress, setGame, updateSettings, useGame } from '../game/GameState';
@@ -50,7 +50,7 @@ export function GameHUD({ surface, onExit }: { surface: () => HTMLElement | null
       {mode === 'playing' && prompt && (
         <p className="hud__prompt" role="status"><kbd>E</kbd> {cap(prompt.verb)} {prompt.label}</p>
       )}
-      {mode === 'playing' && !locked && <p className="hud__hint">Click the scene to look around with the mouse (or drag)</p>}
+      {mode === 'playing' && !locked && <LookHint />}
 
       {mode === 'reading' && <NarrativePanel onClose={play} />}
       {mode === 'paused' && <PauseMenu onResume={play} onExit={onExit} />}
@@ -59,6 +59,13 @@ export function GameHUD({ surface, onExit }: { surface: () => HTMLElement | null
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** how hover look works, shown for the first few seconds of play while the mouse isn't locked */
+function LookHint() {
+  const [show, setShow] = useState(true);
+  useEffect(() => { const t = setTimeout(() => setShow(false), 6000); return () => clearTimeout(t); }, []);
+  return <p className={`hud__hint${show ? '' : ' is-hidden'}`} aria-live="polite">Move the mouse to look around · hold it near an edge to keep turning</p>;
+}
 
 function NarrativePanel({ onClose }: { onClose: () => void }) {
   const id = useGame((s) => s.reading);

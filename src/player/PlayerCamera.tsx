@@ -1,5 +1,6 @@
 /* First-person camera: the visitor's eyes, at eye height inside the invisible capsule.
-   - Mouse look (pointer lock, drag fallback) with adjustable sensitivity, optional inverted Y and a ±85° pitch limit.
+   - Mouse look with adjustable sensitivity, optional inverted Y and a ±85° pitch limit: pointer lock where the
+     browser allows it, otherwise hover look (the view follows the mouse; holding it near an edge keeps turning).
    - Restrained head bob tied to the distance actually walked (fades in and out with speed), a small dip on hard
      landings and a slightly wider FOV at full sprint. All three are off with reduced motion.
    - The eye eases up and down stairs instead of snapping with each Rapier autostep.
@@ -11,7 +12,7 @@ import { MathUtils, PerspectiveCamera } from 'three';
 import { getGame } from '../game/GameState';
 import { cameraOverride } from './cameraOverride';
 import { MOVE, VIEW } from './movement';
-import { input } from './PlayerInput';
+import { input, pointer } from './PlayerInput';
 import { playerState } from './playerState';
 
 const PITCH = MathUtils.degToRad(VIEW.pitchLimit);
@@ -37,8 +38,16 @@ export function PlayerCamera() {
     // look input (consumed every frame)
     if (g.mode === 'playing') {
       const k = VIEW.lookSpeed * g.settings.sensitivity;
+      const inv = g.settings.invertY ? -1 : 1;
       playerState.camYaw -= input.lookX * k;
-      playerState.camPitch = MathUtils.clamp(playerState.camPitch - input.lookY * k * (g.settings.invertY ? -1 : 1), -PITCH, PITCH);
+      playerState.camPitch -= input.lookY * k * inv;
+      // hover look: a cursor resting near an edge keeps turning that way (eased in across the edge zone)
+      if (!document.pointerLockElement && pointer.over) {
+        const z = VIEW.edgeTurn.zone, push = (v: number) => Math.sign(v) * MathUtils.smoothstep(Math.abs(v), 1 - z, 1);
+        playerState.camYaw -= push(pointer.x) * VIEW.edgeTurn.yawSpeed * g.settings.sensitivity * dt;
+        playerState.camPitch -= push(pointer.y) * VIEW.edgeTurn.pitchSpeed * g.settings.sensitivity * inv * dt;
+      }
+      playerState.camPitch = MathUtils.clamp(playerState.camPitch, -PITCH, PITCH);
     }
     input.lookX = 0; input.lookY = 0;
 

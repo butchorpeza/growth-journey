@@ -23,6 +23,11 @@ export const VIEW = {
   sprintFov: 4,        // extra degrees at full sprint (subtle)
   pitchLimit: 85,      // degrees up / down
   lookSpeed: 0.0022,   // radians per mouse pixel at sensitivity 1
+  edgeTurn: {          // hover look (mouse not locked): holding the cursor near an edge keeps turning
+    zone: 0.15,        // outer fraction of the screen on each side
+    yawSpeed: 1.9,     // rad/s at the very edge (scaled by sensitivity)
+    pitchSpeed: 0.8,
+  },
   bob: {               // restrained head bob, off with reduced motion
     strideWalk: 1.5,   // m travelled per full bob cycle (two steps)
     strideRun: 2.3,

@@ -23,7 +23,7 @@ replaces it.
 - **Removed the player character:** `player-survival.glb`, the animation state machine, the character config and the character-only docs and test script. `assets-src/character/` (not in git) was left on disk in case it's ever useful.
 - **New first-person controller:** invisible capsule, eye-height camera, pointer-lock look, restrained head bob, step easing, sprint FOV, reduce-motion setting.
 - **New interaction system:** centre-screen raycast with occlusion, a reticle that opens when something is in reach, and the E prompt.
-- **Fixed:** clicking the scene where pointer lock is refused (embedded browsers) threw uncaught errors. It now falls back to drag-to-look quietly.
+- **Fixed:** clicking the scene where pointer lock is refused (embedded browsers) threw uncaught errors. It now falls back quietly. Since 2026-11-24 the fallback is hover look (no dragging).
 - **Credits:** the Character and Animation sections were removed from `CREDITS.md` because no Mixamo or MPFB content ships anymore.
 
 ## 3. Gaps against the brief

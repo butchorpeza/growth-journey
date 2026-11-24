@@ -247,6 +247,8 @@ html.game-open, html.game-open body { overflow: hidden; }
 #game { position: fixed; inset: 0; z-index: 80; background: #0b1016; }
 .game, .game__surface { position: absolute; inset: 0; }
 .game__surface canvas { display: block; outline: none; }
+/* while playing, the cursor is hidden over the game (the reticle marks the centre); menus and panels show it again */
+.game--playing, .game--playing * { cursor: none !important; }
 .hud { position: absolute; inset: 0; pointer-events: none; color: var(--white); font: 400 15px/1.5 var(--f); }
 .hud > * { pointer-events: auto; }
 .hud__chapter { position: absolute; left: 28px; top: 24px; display: flex; align-items: center; gap: 12px; pointer-events: none;
@@ -276,6 +278,8 @@ html.game-open, html.game-open body { overflow: hidden; }
 .hud__prompt { position: absolute; left: 50%; bottom: 14vh; translate: -50% 0; margin: 0; padding: 10px 18px; border-radius: 999px;
   background: rgb(16 24 32 / 0.72); border: 1px solid var(--line); font-size: 14px; pointer-events: none; }
 .hud__hint { position: absolute; left: 50%; top: 76px; translate: -50% 0; margin: 0; font-size: 13px; color: var(--muted); pointer-events: none; text-shadow: 0 1px 6px rgb(0 0 0 / 0.6); }
+.hud__hint { transition: opacity 0.8s ease; }
+.hud__hint.is-hidden { opacity: 0; }
 .settings { margin: 22px 0 0; padding: 16px 0 0; border: 0; border-top: 1px solid var(--line); display: grid; gap: 12px; font-size: 14px; color: var(--muted); }
 .settings legend { padding: 0; margin-bottom: 8px; font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
 .settings label { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

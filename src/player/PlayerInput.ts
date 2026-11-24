@@ -1,6 +1,11 @@
 /* Keyboard + mouse input, read by the controller every frame (no React state).
-   W/A/S/D or arrows move, Shift sprints, Space jumps, E interacts, mouse looks (pointer lock, or drag as a
-   fallback). Esc is handled by the browser (it releases pointer lock) and turned into "pause" by the game. */
+   W/A/S/D or arrows move, Shift sprints, Space jumps, E interacts. Esc is handled by the browser (it releases
+   pointer lock) and turned into "pause" by the game.
+
+   Mouse look, no button needed:
+   - Pointer lock (taken on "Start exploring" where the browser allows it): unlimited turning, cursor hidden.
+   - Hover look (whenever the mouse isn't locked, e.g. embedded previews): the view follows the mouse as it moves
+     over the game, and holding the cursor near an edge keeps turning that way (see `pointer`, used by the camera). */
 
 export const input = {
   forward: 0, right: 0,           // -1 … 1
@@ -11,6 +16,9 @@ export const input = {
   enabled: false,
 };
 
+/** cursor over the game while the mouse isn't locked: -1 … 1 from the centre (x right, y down) */
+export const pointer = { x: 0, y: 0, over: false };
+
 const keys = new Set<string>();
 const recompute = () => {
   input.forward = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
@@ -18,7 +26,7 @@ const recompute = () => {
   input.run = keys.has('ShiftLeft') || keys.has('ShiftRight');
 };
 
-let dragging = false, target: HTMLElement | null = null;
+let target: HTMLElement | null = null;
 
 const onKeyDown = (e: KeyboardEvent) => {
   if (!input.enabled) return;
@@ -30,13 +38,20 @@ const onKeyDown = (e: KeyboardEvent) => {
   recompute();
 };
 const onKeyUp = (e: KeyboardEvent) => { keys.delete(e.code); recompute(); };
-const onBlur = () => { keys.clear(); recompute(); };
+const onBlur = () => { keys.clear(); recompute(); pointer.over = false; };
 const onMouseMove = (e: MouseEvent) => {
-  if (!input.enabled) return;
-  if (document.pointerLockElement === target || dragging) { input.lookX += e.movementX; input.lookY += e.movementY; }
+  if (!target) return;
+  const locked = document.pointerLockElement === target;
+  if (!locked) {
+    const r = target.getBoundingClientRect();
+    pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+    pointer.y = ((e.clientY - r.top) / r.height) * 2 - 1;
+    pointer.over = Math.abs(pointer.x) <= 1 && Math.abs(pointer.y) <= 1;
+  }
+  if (!input.enabled || (!locked && !pointer.over)) return;
+  input.lookX += e.movementX; input.lookY += e.movementY;
 };
-const onDown = (e: MouseEvent) => { if (e.button === 0 && document.pointerLockElement !== target) dragging = true; };
-const onUp = () => { dragging = false; };
+const onLeave = () => { pointer.over = false; };
 
 export function attachInput(el: HTMLElement) {
   target = el;
@@ -44,16 +59,14 @@ export function attachInput(el: HTMLElement) {
   window.addEventListener('keyup', onKeyUp);
   window.addEventListener('blur', onBlur);
   window.addEventListener('mousemove', onMouseMove);
-  el.addEventListener('mousedown', onDown);
-  window.addEventListener('mouseup', onUp);
+  document.documentElement.addEventListener('mouseleave', onLeave);
   return () => {
     window.removeEventListener('keydown', onKeyDown);
     window.removeEventListener('keyup', onKeyUp);
     window.removeEventListener('blur', onBlur);
     window.removeEventListener('mousemove', onMouseMove);
-    el.removeEventListener('mousedown', onDown);
-    window.removeEventListener('mouseup', onUp);
-    keys.clear(); recompute(); target = null;
+    document.documentElement.removeEventListener('mouseleave', onLeave);
+    keys.clear(); recompute(); target = null; pointer.over = false;
   };
 }
 
@@ -64,5 +77,5 @@ export function clearInput() {
 
 export async function lockPointer(el: HTMLElement) {
   try { await (el.requestPointerLock as (o?: { unadjustedMovement?: boolean }) => Promise<void> | void).call(el, { unadjustedMovement: true }); }
-  catch { try { await el.requestPointerLock(); } catch { /* not allowed: drag-to-look still works */ } }
+  catch { try { await el.requestPointerLock(); } catch { /* not allowed here: hover look still works */ } }
 }
