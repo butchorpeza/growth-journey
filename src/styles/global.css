@@ -254,6 +254,12 @@ html.game-open, html.game-open body { overflow: hidden; }
 .hud__num { color: var(--gold); padding: 5px 8px; border: 1px solid rgb(213 164 108 / 0.5); border-radius: 6px; }
 .hud__tag { color: var(--faint); letter-spacing: 0.08em; }
 .hud__note { position: absolute; left: 28px; bottom: 22px; margin: 0; font-size: 12px; color: rgb(241 243 245 / 0.6); pointer-events: none; text-shadow: 0 1px 6px rgb(0 0 0 / 0.6); }
+/* first-person reticle: a quiet dot that opens into a ring when an interactable is in reach */
+.hud__reticle { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; translate: -50% -50%; border-radius: 50%;
+  background: rgb(241 243 245 / 0.7); box-shadow: 0 0 4px rgb(0 0 0 / 0.5); pointer-events: none;
+  transition: width 0.18s ease, height 0.18s ease, background-color 0.18s ease, border-color 0.18s ease; border: 1.5px solid transparent; }
+.hud__reticle.is-active { width: 18px; height: 18px; background: transparent; border-color: rgb(241 243 245 / 0.85); }
+@media (prefers-reduced-motion: reduce) { .hud__reticle { transition: none; } }
 .hud__center { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 .hud__label { font: 500 12px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .hud__card { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: min(520px, calc(100vw - 32px)); padding: 30px;
@@ -268,7 +274,7 @@ html.game-open, html.game-open body { overflow: hidden; }
 .controls kbd, .hud__prompt kbd { margin-right: 4px; color: var(--white); background: rgb(241 243 245 / 0.08); }
 .hud__prompt { position: absolute; left: 50%; bottom: 14vh; translate: -50% 0; margin: 0; padding: 10px 18px; border-radius: 999px;
   background: rgb(16 24 32 / 0.72); border: 1px solid var(--line); font-size: 14px; pointer-events: none; }
-.hud__hint { position: absolute; left: 50%; top: 24px; translate: -50% 0; margin: 0; font-size: 13px; color: var(--muted); pointer-events: none; text-shadow: 0 1px 6px rgb(0 0 0 / 0.6); }
+.hud__hint { position: absolute; left: 50%; top: 76px; translate: -50% 0; margin: 0; font-size: 13px; color: var(--muted); pointer-events: none; text-shadow: 0 1px 6px rgb(0 0 0 / 0.6); }
 .settings { margin: 22px 0 0; padding: 16px 0 0; border: 0; border-top: 1px solid var(--line); display: grid; gap: 12px; font-size: 14px; color: var(--muted); }
 .settings legend { padding: 0; margin-bottom: 8px; font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
 .settings label { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

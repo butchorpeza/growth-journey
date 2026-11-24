@@ -2,7 +2,7 @@
    unmounted when they leave (GPU memory is released). The HTML website underneath stays in the page. */
 import { lazy, Suspense, useEffect, useRef } from 'react';
 import { GameHUD, usePauseOnUnlock } from '../interface/GameHUD';
-import { attachInput, input } from '../player/PlayerInput';
+import { attachInput, input, lockPointer } from '../player/PlayerInput';
 import { setGame, useGame } from './GameState';
 
 const GameCanvas = lazy(() => import('./GameCanvas'));
@@ -16,8 +16,8 @@ export function GameRoot({ onExit }: { onExit: () => void }) {
   const exit = () => { document.exitPointerLock?.(); onExit(); };
 
   return (
-    <div className="game" role="application" aria-label="The Growth Journey, interactive third-person experience">
-      <div ref={surface} className="game__surface" onClick={() => { if (mode === 'playing' && !document.pointerLockElement) void (surface.current as HTMLElement).requestPointerLock?.(); }}>
+    <div className="game" role="application" aria-label="The Growth Journey, interactive first-person experience">
+      <div ref={surface} className="game__surface" onClick={() => { if (mode === 'playing' && !document.pointerLockElement && surface.current) void lockPointer(surface.current); }}>
         <Suspense fallback={null}><GameCanvas /></Suspense>
       </div>
       <GameHUD surface={() => surface.current} onExit={exit} />

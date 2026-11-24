@@ -26,7 +26,6 @@ Checklist:
 | Mid-distance prop or building | 2k–15k | 1K–2K | shared atlases for small props |
 | Background / skyline | < 2k each | 512–1K, shared | instanced where repeated |
 | Foliage | cards + instancing | 1K atlas, alpha-tested | LOD to impostors far away |
-| Character | 30k–60k total | 2K body, 2K outfit, 1K hair | KTX2; one GLB with all clips |
 
 Per-chapter budget, first load: ≤ 25 MB of compressed GLB and KTX2, ≤ 1.5 M visible triangles on the high tier, and a draw-call target under 400.
 
@@ -41,11 +40,9 @@ Per-chapter budget, first load: ≤ 25 MB of compressed GLB and KTX2, ≤ 1.5 M 
   gltf-transform meshopt tmp.glb out.glb        # or: draco (static meshes only)
   ```
   WebP is the fallback until `toktx` is installed (`brew install ktx-software`). `scripts/optimize-island.mjs` is the working example (75 MB → 3 MB).
-- **Character:** `scripts/blender/build_character.py` (body, rig, outfit) → `scripts/blender/bake_mixamo_clips.py`
-  (bakes every Mixamo FBX in `assets-src/character/mixamo/` onto the rig, one action per clip) → `gltf-transform resize
-  --width 2048 --height 2048`, `webp`, `prune`, `resample`, `meshopt` → `public/models/characters/player-survival.glb`.
-  Review renders of the baked clips before shipping (feet planted, no twisted wrists).
-- Meshopt is the default because it also compresses skinning and animation and decodes fast, and three.js ships the decoder. Draco is optional for large static meshes.
+- **Character pipeline: retired.** The first-person brief has no player model. `build_character.py` and `bake_mixamo_clips.py`
+  stay in `scripts/blender/` only in case a chapter ever needs a non-player figure.
+- Meshopt is the default because it compresses well and decodes fast, and three.js ships the decoder. Draco is optional for large static meshes.
 - **Always compare before and after in a test scene.** Never compress blindly, and check normal maps and silhouettes.
 
 ## 5. Runtime integration

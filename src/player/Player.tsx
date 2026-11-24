@@ -1,58 +1,31 @@
-/* Third-person player: a kinematic capsule moved by Rapier's character controller (collisions, slopes, steps,
-   ground snapping), gravity + jumping with coyote time and jump buffering, camera-relative movement with
-   acceleration/deceleration, smooth turning, and animation states driven by the real motion. */
-import { useAnimations, useGLTF } from '@react-three/drei';
+/* First-person body: an invisible kinematic capsule moved by Rapier's character controller (collisions, slopes,
+   steps, ground snapping), with gravity, jumping (coyote time + jump buffer) and view-relative movement with
+   acceleration/deceleration. Nothing is rendered: the visitor is the camera (PlayerCamera.tsx). */
 import { useFrame } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useRapier, type RapierCollider, type RapierRigidBody } from '@react-three/rapier';
 import { useEffect, useMemo, useRef } from 'react';
-import { DoubleSide, FrontSide, Group, MathUtils, Vector3, type Mesh, type MeshStandardMaterial } from 'three';
-import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { MathUtils, Vector3 } from 'three';
 import { getGame } from '../game/GameState';
 import { GROUPS } from '../physics/CollisionLayers';
-import { character, MOVE } from './characterConfig';
-import { PlayerAnimations } from './PlayerAnimations';
+import { MOVE } from './movement';
 import { input } from './PlayerInput';
 import { playerState } from './playerState';
 
-const HALF = character.height / 2 - MOVE.capsuleRadius;   // capsule half-height (cylinder part)
-const CENTER_Y = HALF + MOVE.capsuleRadius;               // capsule centre above the feet
-
-/* MPFB exports every material as alpha-blended + double-sided. In real time that causes sorting glitches and doubles
-   the fragment work: skin/clothes/eyes become opaque front-faced, hair/brows/lashes become alpha-tested cards. */
-const CARD = /(short|hair|eyebrow|eyelash)/i;
-function fixMaterial(mesh: Mesh) {
-  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-  for (const m of mats as MeshStandardMaterial[]) {
-    const card = CARD.test(m.name);
-    m.transparent = false; m.depthWrite = true;
-    m.alphaTest = card ? 0.5 : 0;
-    m.side = card ? DoubleSide : FrontSide;
-    if (card) mesh.castShadow = false;
-    m.needsUpdate = true;
-  }
-}
+const HALF = MOVE.height / 2 - MOVE.capsuleRadius;   // capsule half-height (cylinder part)
+const CENTER_Y = HALF + MOVE.capsuleRadius;          // capsule centre above the feet
 
 type KCC = ReturnType<ReturnType<typeof useRapier>['world']['createCharacterController']>;
 
-export function Player({ spawn = [0, 0, 0] as [number, number, number] }) {
+export function Player({ spawn = [0, 0, 0] as [number, number, number], spawnYaw = 0 }) {
   const { world } = useRapier();
   const body = useRef<RapierRigidBody>(null);
   const collider = useRef<RapierCollider>(null);
-  const visual = useRef<Group>(null);
   const kcc = useRef<KCC | null>(null);
 
-  const gltf = useGLTF(character.url, false, true);
-  const model = useMemo(() => {
-    const m = cloneSkinned(gltf.scene) as Group;
-    m.traverse((o) => {
-      const mesh = o as Mesh & { isSkinnedMesh?: boolean };
-      if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false; fixMaterial(mesh); }
-    });
-    return m;
-  }, [gltf.scene]);
-  const { actions } = useAnimations(gltf.animations, visual);
-  const anim = useRef<PlayerAnimations | null>(null);
-  useEffect(() => { anim.current = new PlayerAnimations(actions, character); }, [actions]);
+  useEffect(() => {
+    playerState.position.set(...spawn); playerState.velocity.set(0, 0, 0);
+    playerState.camYaw = spawnYaw; playerState.camPitch = 0;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Rapier character controller: 1 cm skin, autostep for stairs, snap to ground on slopes, push dynamic props
   useEffect(() => {
@@ -69,7 +42,7 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number] }) {
   }, [world]);
 
   const tmp = useMemo(() => ({ wish: new Vector3(), move: new Vector3(), fwd: new Vector3(), right: new Vector3() }), []);
-  const timers = useRef({ sinceGround: 0, sinceJump: 9, air: 0 });
+  const timers = useRef({ sinceGround: 0, sinceJump: 9 });
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 1 / 30);
@@ -84,7 +57,7 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number] }) {
     const active = getGame().mode === 'playing';
     const v = playerState.velocity;
 
-    // camera-relative wish direction
+    // view-relative wish direction (yaw only: looking up or down never slows walking)
     const yaw = playerState.camYaw;
     tmp.fwd.set(-Math.sin(yaw), 0, -Math.cos(yaw));
     tmp.right.set(Math.cos(yaw), 0, -Math.sin(yaw));
@@ -106,9 +79,10 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number] }) {
     t.sinceGround = playerState.grounded ? 0 : t.sinceGround + dt;
     if (active && input.jumpPressed) { t.sinceJump = 0; input.jumpPressed = false; } else t.sinceJump += dt;
     if (t.sinceJump < MOVE.jumpBuffer && t.sinceGround < MOVE.coyoteTime && v.y <= 0.01) {
-      v.y = MOVE.jumpVelocity; t.sinceJump = 9; t.sinceGround = 9; anim.current?.play('jump', 0.1);
+      v.y = MOVE.jumpVelocity; t.sinceJump = 9; t.sinceGround = 9;
     }
     v.y -= MOVE.gravity * dt;
+    const fallSpeed = -v.y;
 
     // let Rapier resolve the move against the world
     tmp.move.set(v.x * dt, v.y * dt, v.z * dt);
@@ -118,56 +92,21 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number] }) {
     if (v.y > 0 && m.y < tmp.move.y - 1e-4) v.y = 0;            // hit a ceiling
     if (grounded && v.y < 0) v.y = -0.5;                        // stay glued to the ground
     // note: the velocity is NOT cut when a move is blocked — Rapier's autostep needs the full step
-    // (cutting it kept the character stuck at the first stair). Walls are handled by Rapier sliding.
+    // (cutting it kept the player stuck at the first stair). Walls are handled by Rapier sliding.
 
     const p = b.translation();
     b.setNextKinematicTranslation({ x: p.x + m.x, y: p.y + m.y, z: p.z + m.z });
 
-    const wasGrounded = playerState.grounded;
+    if (grounded && !playerState.grounded && fallSpeed > 5) playerState.landImpact = Math.min(1, (fallSpeed - 5) / 10);
     playerState.grounded = grounded;
     playerState.position.set(p.x + m.x, p.y + m.y - CENTER_Y, p.z + m.z);
-    // animation + camera use the distance actually travelled, so pushing into a wall reads as standing
+    // the camera uses the distance actually travelled, so pushing into a wall reads as standing still
     playerState.speed = dt > 0 ? Math.hypot(m.x, m.z) / dt : 0;
-
-    // face the direction of travel (or the object being inspected)
-    const ft = playerState.faceTarget;
-    if (moving) playerState.faceTarget = null;
-    if (ft && !moving) {
-      const targetYaw = Math.atan2(ft.x - playerState.position.x, ft.z - playerState.position.z);
-      let d = targetYaw - playerState.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
-      playerState.yaw += d * (1 - Math.exp(-8 * dt));
-      if (Math.abs(d) < 0.02) playerState.faceTarget = null;
-    } else if (moving && Math.hypot(v.x, v.z) > 0.15) {
-      const targetYaw = Math.atan2(v.x, v.z);
-      let d = targetYaw - playerState.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
-      playerState.yaw += d * (1 - Math.exp(-MOVE.turnRate * dt));
-    }
-    if (visual.current) {
-      visual.current.position.copy(playerState.position);
-      visual.current.rotation.y = playerState.yaw + character.yawOffset;
-    }
-
-    // animation state from the actual motion
-    const a = anim.current;
-    if (a) {
-      const airTime = t.air;                        // time spent airborne before this frame
-      t.air = grounded ? 0 : t.air + dt;
-      if (playerState.action === 'interact') { playerState.action = null; if (grounded) a.play('interact', 0.25); }
-      if (!grounded && t.air > 0.18) a.set(v.y > 0.5 && a.state === 'jump' ? 'jump' : 'fall', 0.2);
-      else if (grounded && !wasGrounded && airTime > 0.35) a.play('land', 0.08);
-      else if (grounded) a.set(playerState.speed < 0.15 ? 'idle' : playerState.speed < (MOVE.walkSpeed + MOVE.runSpeed) / 2 ? 'walk' : 'run', 0.28);
-      a.update(dt, playerState.speed);
-    }
   });
 
   return (
-    <>
-      <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[spawn[0], spawn[1] + CENTER_Y, spawn[2]]} enabledRotations={[false, false, false]}>
-        <CapsuleCollider ref={collider} args={[HALF, MOVE.capsuleRadius]} collisionGroups={GROUPS.player} />
-      </RigidBody>
-      <group ref={visual}>
-        <primitive object={model} scale={character.scale} />
-      </group>
-    </>
+    <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[spawn[0], spawn[1] + CENTER_Y, spawn[2]]} enabledRotations={[false, false, false]}>
+      <CapsuleCollider ref={collider} args={[HALF, MOVE.capsuleRadius]} collisionGroups={GROUPS.player} />
+    </RigidBody>
   );
 }

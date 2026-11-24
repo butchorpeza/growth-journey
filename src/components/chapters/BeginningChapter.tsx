@@ -29,7 +29,7 @@ export function BeginningChapter() {
           <span className="hero-location">{profile.location}</span>
         </div>
         <p className="hero-note" data-reveal>
-          {quality === 'off' ? 'The interactive journey needs WebGL, which this browser has turned off. Everything is also on this page.' : 'An interactive third-person journey · best on a desktop with keyboard and mouse.'}
+          {quality === 'off' ? 'The interactive journey needs WebGL, which this browser has turned off. Everything is also on this page.' : 'An interactive first-person journey · best on a desktop with keyboard and mouse.'}
         </p>
         <p className="scroll-cue" aria-hidden="true">Scroll to begin</p>
       </div>

@@ -1,35 +1,31 @@
-/* Third-person over-the-shoulder camera.
-   - Orbits a pivot at shoulder height (mouse: yaw/pitch, wheel: distance), slightly offset to the right.
-   - Collision-aware: a ray from the pivot towards the camera stops it in front of walls; it pulls in fast and
-     eases back out slowly, so it never clips through geometry and never pops.
-   - Follows with critically-damped smoothing; FOV widens a little while running.
+/* First-person camera: the visitor's eyes, at eye height inside the invisible capsule.
+   - Mouse look (pointer lock, drag fallback) with adjustable sensitivity, optional inverted Y and a ±85° pitch limit.
+   - Restrained head bob tied to the distance actually walked (fades in and out with speed), a small dip on hard
+     landings and a slightly wider FOV at full sprint. All three are off with reduced motion.
+   - The eye eases up and down stairs instead of snapping with each Rapier autostep.
+   - The camera sits inside the capsule, which is wider than the near plane, so it can't see through walls.
    - A cinematic mode (camera rails driven by GSAP) can take over through `cameraOverride`. */
 import { useFrame, useThree } from '@react-three/fiber';
-import { useRapier } from '@react-three/rapier';
-import { useMemo, useRef } from 'react';
-import { MathUtils, PerspectiveCamera, Vector3 } from 'three';
+import { useRef } from 'react';
+import { MathUtils, PerspectiveCamera } from 'three';
 import { getGame } from '../game/GameState';
-import { GROUPS } from '../physics/CollisionLayers';
-import { MOVE } from './characterConfig';
+import { cameraOverride } from './cameraOverride';
+import { MOVE, VIEW } from './movement';
 import { input } from './PlayerInput';
 import { playerState } from './playerState';
 
-export const cameraOverride = { active: false, position: new Vector3(), target: new Vector3(), fov: 50 };
-
-const PITCH_MIN = -0.45, PITCH_MAX = 1.15;
-const DIST_MIN = 1.6, DIST_MAX = 6.5;
-const PIVOT_HEIGHT = 1.55, SHOULDER = 0.42, MARGIN = 0.22;
+const PITCH = MathUtils.degToRad(VIEW.pitchLimit);
+const MAX_EYE_LAG = 0.3;   // m: the eased eye never trails the body by more than this
 
 export function PlayerCamera() {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
-  const { world, rapier } = useRapier();
-  const v = useMemo(() => ({ pivot: new Vector3(), dir: new Vector3(), desired: new Vector3(), right: new Vector3(), look: new Vector3() }), []);
-  const dist = useRef(playerState.camDistance), first = useRef(true);
-  const smoothPivot = useRef(new Vector3());
+  const s = useRef({ eyeY: NaN, phase: 0, amp: 0, dip: 0, dipTarget: 0 });
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 1 / 30);
     const g = getGame();
+    const still = g.settings.reducedMotion;
+    const st = s.current;
 
     if (cameraOverride.active) {
       camera.position.copy(cameraOverride.position);
@@ -40,44 +36,41 @@ export function PlayerCamera() {
 
     // look input (consumed every frame)
     if (g.mode === 'playing') {
-      const s = 0.0022 * g.settings.sensitivity;
-      playerState.camYaw -= input.lookX * s;
-      playerState.camPitch = MathUtils.clamp(playerState.camPitch + input.lookY * s * (g.settings.invertY ? -1 : 1), PITCH_MIN, PITCH_MAX);
-      playerState.camDistance = MathUtils.clamp(playerState.camDistance + input.zoom * 0.45, DIST_MIN, DIST_MAX);
+      const k = VIEW.lookSpeed * g.settings.sensitivity;
+      playerState.camYaw -= input.lookX * k;
+      playerState.camPitch = MathUtils.clamp(playerState.camPitch - input.lookY * k * (g.settings.invertY ? -1 : 1), -PITCH, PITCH);
     }
-    input.lookX = 0; input.lookY = 0; input.zoom = 0;
+    input.lookX = 0; input.lookY = 0;
 
-    // pivot: shoulder height, smoothed so footsteps and small bumps don't shake the view
-    v.pivot.copy(playerState.position).y += PIVOT_HEIGHT;
-    if (first.current) smoothPivot.current.copy(v.pivot);
-    smoothPivot.current.lerp(v.pivot, 1 - Math.exp(-14 * dt));
-    const yaw = playerState.camYaw, pitch = playerState.camPitch;
-    v.right.set(Math.cos(yaw), 0, -Math.sin(yaw));
-    v.look.copy(smoothPivot.current).addScaledVector(v.right, SHOULDER);
+    // eye height, eased on steps
+    const p = playerState.position;
+    const targetY = p.y + VIEW.eyeHeight;
+    if (Number.isNaN(st.eyeY) || !playerState.grounded) st.eyeY = targetY;
+    else st.eyeY = MathUtils.clamp(MathUtils.lerp(st.eyeY, targetY, 1 - Math.exp(-VIEW.stepSmoothing * dt)), targetY - MAX_EYE_LAG, targetY + MAX_EYE_LAG);
 
-    // direction from pivot to camera
-    v.dir.set(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)).normalize();
-    const want = playerState.camDistance;
+    // head bob: one cycle per stride (two footsteps), amplitude follows the real ground speed
+    const speed = playerState.grounded ? playerState.speed : 0;
+    const runT = MathUtils.clamp((speed - MOVE.walkSpeed) / (MOVE.runSpeed - MOVE.walkSpeed), 0, 1);
+    const stride = MathUtils.lerp(VIEW.bob.strideWalk, VIEW.bob.strideRun, runT);
+    const wantAmp = still ? 0 : MathUtils.lerp(VIEW.bob.heightWalk, VIEW.bob.heightRun, runT) * MathUtils.clamp(speed / MOVE.walkSpeed, 0, 1);
+    st.amp = MathUtils.lerp(st.amp, wantAmp, 1 - Math.exp(-6 * dt));
+    st.phase = (st.phase + (speed * dt / stride) * Math.PI * 2) % (Math.PI * 2);
+    const bobY = Math.sin(st.phase * 2) * st.amp;
+    const bobX = Math.sin(st.phase) * st.amp * VIEW.bob.sway;
 
-    // collision: cast from the shoulder towards the camera, stop just in front of the first hit
-    let allowed = want;
-    const ray = new rapier.Ray(v.look, v.dir);
-    const hit = world.castRay(ray, want + MARGIN, true, undefined, GROUPS.cameraObstruction);
-    if (hit) allowed = Math.max(DIST_MIN * 0.5, hit.timeOfImpact - MARGIN);
-    // pull in fast, ease out slowly
-    const rate = allowed < dist.current ? 30 : 3;
-    dist.current = first.current ? allowed : MathUtils.lerp(dist.current, allowed, 1 - Math.exp(-rate * dt));
+    // landing dip
+    if (playerState.landImpact > 0) { if (!still) st.dipTarget = playerState.landImpact * VIEW.bob.landDip; playerState.landImpact = 0; }
+    st.dipTarget *= Math.exp(-6 * dt);
+    st.dip = MathUtils.lerp(st.dip, st.dipTarget, 1 - Math.exp(-20 * dt));
 
-    v.desired.copy(v.look).addScaledVector(v.dir, dist.current);
-    if (first.current) camera.position.copy(v.desired);
-    else camera.position.lerp(v.desired, 1 - Math.exp(-18 * dt));
-    camera.lookAt(v.look);
+    const yaw = playerState.camYaw;
+    camera.rotation.set(playerState.camPitch, yaw, 0, 'YXZ');
+    camera.position.set(p.x + Math.cos(yaw) * bobX, st.eyeY + bobY - st.dip, p.z - Math.sin(yaw) * bobX);
 
-    // a touch wider while running
-    const runFov = 50 + Math.min(1, playerState.speed / MOVE.runSpeed) * 5;
-    camera.fov = MathUtils.lerp(camera.fov, runFov, 1 - Math.exp(-3 * dt));
+    // a touch wider at full sprint
+    const fov = VIEW.fov + (still ? 0 : runT * VIEW.sprintFov);
+    camera.fov = MathUtils.lerp(camera.fov, fov, 1 - Math.exp(-3 * dt));
     camera.updateProjectionMatrix();
-    first.current = false;
   });
   return null;
 }

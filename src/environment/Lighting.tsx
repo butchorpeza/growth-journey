@@ -1,5 +1,5 @@
 /* Image-based lighting from a CC0 Poly Haven HDRI + one sun with shadows that follow the player
-   (a small shadow frustum around the character keeps shadows sharp without a huge shadow map). */
+   (a small shadow frustum around the visitor keeps shadows sharp without a huge shadow map). */
 import { Environment } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';

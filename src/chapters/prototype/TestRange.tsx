@@ -1,7 +1,6 @@
 /* TEMPORARY TECHNICAL TEST RANGE (Phase 03) — not final art and never shown as such.
-   Grey blockout for testing the character controller and camera: slopes at 15°/30°/44°/58° (the last one must
-   NOT be climbable), stairs, a low tunnel and walls for camera collision, jump platforms, pushable crates and two
-   interactables. Everything here is replaced by real environment assets from Phase 04 on. */
+   Grey blockout for testing the first-person controller: slopes at 15°/30°/44°/58° (the last one must NOT be
+   climbable), stairs, a corridor and a low tunnel, jump platforms, pushable crates and two interactables. Everything here is replaced by real environment assets from Phase 04 on. */
 import { Grid } from '@react-three/drei';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { MathUtils } from 'three';

@@ -16,12 +16,29 @@ needs a credit (see `CREDITS.md`, to be generated).
 |---|---|---|---|---|---|---|
 | Overcast Soil (Pure Sky) HDRI, 1K | Prototype / Survival | https://polyhaven.com/a/overcast_soil_puresky | CC0 | HDR 1.2 MB | `public/hdri/` | Acquired |
 | three.js example "Soldier" | Prototype only | https://github.com/mrdoob/three.js/blob/dev/examples/models/gltf/Soldier.glb | Mixamo character (Adobe royalty-free terms) from the three.js repo | GLB 2.2 MB, Mixamo rig, Idle/Walk/Run | Interim clip source; **removed 2026-11-24** (replaced by the Mixamo set below) | Retired |
-| Mixamo clip set (11 clips) | Character, all chapters | https://www.mixamo.com/ (Y Bot, "Without Skin", FBX, 30 fps, In Place) | Adobe Mixamo terms: royalty-free in projects, no redistribution of raw files | FBX in `assets-src/character/mixamo/` (not in git) → baked into `player-survival.glb` | Breathing Idle → Idle · Male Standard Walk → Walk · Male Walk Backwards → WalkBack · Standard Running → Run · Standing Left/Right Turn → TurnLeft/TurnRight · Jumping Up From Action Idle (Game Blend) → JumpStart · Mid-Air Falling Idle → Fall · Landing From Falling Idle → Land · Picking Up An Object (frames 15–200) → Interact · Idle Stand Looking Around → LookAround | Integrated |
+| Mixamo clip set (11 clips) | — | https://www.mixamo.com/ | Adobe Mixamo terms | FBX in `assets-src/character/mixamo/` (not in git) | Was baked into the third-person character. The first-person brief has no player model, so it was **removed from the site 2026-11-24**. | Retired |
 | Survival CC0 set from Poly Haven (fetched with `scripts/fetch-polyhaven.mjs`) | Survival | https://polyhaven.com (each folder has SOURCE.txt) | CC0 | HDRI 2K, glTF 1K, PBR 2K | HDRIs: mud_road, farmland_overcast. Materials: rusty_corrugated_iron, red_laterite_soil_stones, concrete_block_wall, weathered_planks, damaged_plaster, muddy_tracks. Models: modular_electricity_poles (200k polys, needs LOD), modular_electric_cables, plastic_monobloc_chair_01, WoodenTable_01, plastic_jerrycan, wooden_bucket_01, pot_enamel_01, barrel_stove, wicker_basket_01, sungka_board, vintage_oil_lamp, wooden_crate_01, old_tyre, wooden_ladder, rusted_spade_01. In `assets-src/survival/polyhaven/` (125 MB source; not in git). | Acquired (inspection pending in Phase 04) |
-| MPFB2 extension v2.0.18 | Character | https://extensions.blender.org/add-ons/mpfb/ | GPL add-on, CC0 assets | Blender extension | Installed into Blender 5.1 | Acquired |
+| MPFB2 extension v2.0.18 | — | https://extensions.blender.org/add-ons/mpfb/ | GPL add-on, CC0 assets | Blender extension | Built the third-person character, which was **removed 2026-11-24** (first-person brief, no player model) | Retired |
 | Island + "Kid" (Butch's Downloads) | — | local file | unknown origin | GLB 75 MB | Low-poly and cartoon, so not usable as final art | Rejected |
 
 ---
+
+## Chapter 01 summary (format from the master brief)
+
+| Chapter | Asset | Source | Format | License | Optimization | Status |
+|---|---|---|---|---|---|---|
+| 01 | Overcast HDRIs (overcast_soil_puresky, mud_road, farmland_overcast) | Poly Haven | HDR 1K–2K | CC0 | 1K in game, 2K for reflections only | Acquired |
+| 01 | PBR materials: rusty corrugated iron, laterite soil, concrete block, weathered planks, damaged plaster, muddy tracks | Poly Haven | 2K JPG/PNG maps | CC0 | KTX2, ORM packing | Acquired |
+| 01 | Household props (monobloc chair, table, jerrycan, bucket, enamel pot, barrel stove, basket, sungka board, oil lamp, crate, tyre, ladder, spade) | Poly Haven | glTF, 1K | CC0 | meshopt, shared atlases, instancing | Acquired, not inspected |
+| 01 | Utility poles + cables | Poly Haven | glTF | CC0 | 200k polys: needs LOD/decimation | Acquired, not inspected |
+| 01 | Village build (`survival-world.glb`, `survival-foliage.glb`) | `scripts/blender/build_survival.py` | GLB | CC0 sources | To be measured | Built, not inspected |
+| 01 | Hero weathered house ("Old House Wooden Enterable Rusty") | Sketchfab | glTF / FBX | CC-BY 4.0 | 24k faces, 2K, `COL_*` collision | Pending (needs account) |
+| 01 | Shacks (Old Shack 1, Shack 2) | Blendkit | .blend | CC0 / Blendkit RF | Export GLB, 2K | Pending |
+| 01 | Clothes line, wooden cart, bicycle, corrugated panels | Sketchfab | glTF | CC-BY | Decimate where > 50k faces | Pending |
+| 01 | Palms, banana / tropical plants | Sketchfab | glTF | CC-BY | Alpha-tested cards, instancing, impostors far away | Pending |
+| 01 | Trees, ferns, shrubs, rocks, distant hills | Poly Haven | glTF | CC0 | island_tree needs impostors (1.8–3.7M polys) | Pending |
+
+The detailed research per asset follows.
 
 ## 01 · Survival (grounded tropical rural village)
 Blendkit (BlenderKit renamed itself in 2026) needs the add-on plus a free account and delivers .blend only.
@@ -190,16 +207,11 @@ Blendkit (BlenderKit renamed itself in 2026) needs the add-on plus a free accoun
 
 ---
 
-## Player character and animation (all chapters)
-See `CHARACTER_PLAN.md`. Summary:
-
-| Item | Source | Licence | Status |
-|---|---|---|---|
-| MPFB2 (MakeHuman for Blender) + CC0 clothing packs | https://extensions.blender.org/add-ons/mpfb/ · https://static.makehumancommunity.org/assets/assetpacks.html | GPL add-on, CC0 assets | Integrated (`player-survival.glb`) |
-| Renderpeople "Eric Rigged 001" | https://sketchfab.com/3d-models/eric-rigged-001-rigged-3d-business-man-a46bc9f67aaa415bb4f3241eef900e7f | CC-BY | Pending (realism alternative) |
-| Mixamo animations | https://www.mixamo.com/ | Adobe royalty-free, no raw redistribution | Integrated: 11 clips baked into the character GLB (list above) |
-| Quaternius Universal Animation Library | https://quaternius.com/packs/universalanimationlibrary.html | CC0 | Pending |
-| CMU mocap | http://mocap.cs.cmu.edu/ | free use, no resale of the data | Pending |
+## Player character and animation — retired (2026-11-24)
+The first-person brief has **no visible player**: no character model, hands, shadow or skeletal animation. The MPFB2
+character (`player-survival.glb`) and its 11 Mixamo clips were removed from the site. The source files stay in
+`assets-src/character/`, which isn't in git. Mixamo/MPFB may come back only for *non-player* figures, if a chapter
+ever calls for them.
 
 ## Audio (CC0 unless noted; check each sound's own licence field on Freesound)
 | Item | Source |

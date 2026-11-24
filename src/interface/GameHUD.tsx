@@ -1,10 +1,9 @@
-/* Everything drawn over the game in HTML: chapter indicator, interaction prompt, narrative panel, pause menu,
-   intro card and the "click to look around" hint. Restrained, readable, no game-HUD clutter. */
+/* Everything drawn over the game in HTML: chapter indicator, centre reticle, interaction prompt, narrative panel,
+   pause menu, intro card and the "click to look around" hint. Restrained, readable, no game-HUD clutter. */
 import { useEffect, useRef } from 'react';
 import { prototypeChapter } from '../data/chapters';
 import { narrative } from '../data/narrative';
 import { getGame, resetProgress, setGame, updateSettings, useGame } from '../game/GameState';
-import { character } from '../player/characterConfig';
 import { clearInput, lockPointer } from '../player/PlayerInput';
 
 export function GameHUD({ surface, onExit }: { surface: () => HTMLElement | null; onExit: () => void }) {
@@ -20,19 +19,18 @@ export function GameHUD({ surface, onExit }: { surface: () => HTMLElement | null
         <span>{prototypeChapter.title}</span>
         <span className="hud__tag">Prototype · temporary blockout</span>
       </div>
-      {character.temporary && <p className="hud__note">Temporary test character.</p>}
 
       {mode === 'loading' && <div className="hud__center"><p className="hud__label">Loading the world…</p></div>}
 
       {mode === 'intro' && (
         <div className="hud__card" role="dialog" aria-label="Controls">
-          <p className="eyebrow eyebrow--plain">Third-person prototype</p>
-          <h2>Movement & camera test</h2>
+          <p className="eyebrow eyebrow--plain">First-person prototype</p>
+          <h2>Movement & look test</h2>
           <ul className="controls">
             <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move</li>
-            <li><kbd>Shift</kbd> Run</li>
+            <li><kbd>Shift</kbd> Sprint</li>
             <li><kbd>Space</kbd> Jump</li>
-            <li><kbd>Mouse</kbd> Look · <kbd>Wheel</kbd> Zoom</li>
+            <li><kbd>Mouse</kbd> Look</li>
             <li><kbd>E</kbd> Interact</li>
             <li><kbd>Esc</kbd> Pause</li>
           </ul>
@@ -43,6 +41,7 @@ export function GameHUD({ surface, onExit }: { surface: () => HTMLElement | null
         </div>
       )}
 
+      {mode === 'playing' && <span className={`hud__reticle${prompt ? ' is-active' : ''}`} aria-hidden="true" />}
       {mode === 'playing' && prompt && (
         <p className="hud__prompt" role="status"><kbd>E</kbd> {cap(prompt.verb)} {prompt.label}</p>
       )}
@@ -88,6 +87,7 @@ function PauseMenu({ onResume, onExit }: { onResume: () => void; onExit: () => v
         <legend>Settings</legend>
         <label>Mouse sensitivity <input type="range" min="0.3" max="2.5" step="0.1" value={s.sensitivity} onChange={(e) => updateSettings({ sensitivity: Number(e.target.value) })} /></label>
         <label><input type="checkbox" checked={s.invertY} onChange={(e) => updateSettings({ invertY: e.target.checked })} /> Invert vertical look</label>
+        <label><input type="checkbox" checked={s.reducedMotion} onChange={(e) => updateSettings({ reducedMotion: e.target.checked })} /> Reduce motion (no head bob or sprint zoom)</label>
         <label>Graphics
           <select value={s.quality} onChange={(e) => updateSettings({ quality: e.target.value as 'high' | 'low' })}>
             <option value="high">High (shadows, full resolution)</option>

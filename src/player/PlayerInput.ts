@@ -1,6 +1,6 @@
 /* Keyboard + mouse input, read by the controller every frame (no React state).
-   W/A/S/D or arrows move, Shift runs, Space jumps, E interacts, mouse looks (pointer lock, or drag as a fallback),
-   wheel zooms. Esc is handled by the browser (it releases pointer lock) and turned into "pause" by the game. */
+   W/A/S/D or arrows move, Shift sprints, Space jumps, E interacts, mouse looks (pointer lock, or drag as a
+   fallback). Esc is handled by the browser (it releases pointer lock) and turned into "pause" by the game. */
 
 export const input = {
   forward: 0, right: 0,           // -1 … 1
@@ -8,7 +8,6 @@ export const input = {
   jumpPressed: false,             // edge-triggered: consumed by the controller
   interactPressed: false,         // edge-triggered: consumed by the interaction manager
   lookX: 0, lookY: 0,             // accumulated mouse deltas, consumed by the camera
-  zoom: 0,                        // accumulated wheel delta
   enabled: false,
 };
 
@@ -38,7 +37,6 @@ const onMouseMove = (e: MouseEvent) => {
 };
 const onDown = (e: MouseEvent) => { if (e.button === 0 && document.pointerLockElement !== target) dragging = true; };
 const onUp = () => { dragging = false; };
-const onWheel = (e: WheelEvent) => { if (input.enabled) { input.zoom += Math.sign(e.deltaY); e.preventDefault(); } };
 
 export function attachInput(el: HTMLElement) {
   target = el;
@@ -48,7 +46,6 @@ export function attachInput(el: HTMLElement) {
   window.addEventListener('mousemove', onMouseMove);
   el.addEventListener('mousedown', onDown);
   window.addEventListener('mouseup', onUp);
-  el.addEventListener('wheel', onWheel, { passive: false });
   return () => {
     window.removeEventListener('keydown', onKeyDown);
     window.removeEventListener('keyup', onKeyUp);
@@ -56,14 +53,13 @@ export function attachInput(el: HTMLElement) {
     window.removeEventListener('mousemove', onMouseMove);
     el.removeEventListener('mousedown', onDown);
     window.removeEventListener('mouseup', onUp);
-    el.removeEventListener('wheel', onWheel);
     keys.clear(); recompute(); target = null;
   };
 }
 
 export function clearInput() {
   keys.clear(); recompute();
-  input.jumpPressed = false; input.interactPressed = false; input.lookX = 0; input.lookY = 0; input.zoom = 0;
+  input.jumpPressed = false; input.interactPressed = false; input.lookX = 0; input.lookY = 0;
 }
 
 export async function lockPointer(el: HTMLElement) {

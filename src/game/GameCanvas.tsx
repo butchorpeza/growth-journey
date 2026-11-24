@@ -1,4 +1,4 @@
-/* The WebGL world: renderer settings, physics world, the current chapter, the player and the camera.
+/* The WebGL world: renderer settings, physics world, the current chapter, the invisible player and the camera.
    Only the current chapter is mounted; switching chapters unmounts the old one (R3F disposes its geometry,
    materials and textures) and loads the next one lazily. */
 import { AdaptiveDpr, PerformanceMonitor, useProgress } from '@react-three/drei';
@@ -9,6 +9,7 @@ import { ACESFilmicToneMapping, PCFSoftShadowMap, SRGBColorSpace } from 'three';
 import { TestRange } from '../chapters/prototype/TestRange';
 import { Lighting } from '../environment/Lighting';
 import { InteractionManager } from '../interactions/Interactable';
+import { VIEW } from '../player/movement';
 import { Player } from '../player/Player';
 import { PlayerCamera } from '../player/PlayerCamera';
 import { playerState } from '../player/playerState';
@@ -32,7 +33,7 @@ export default function GameCanvas() {
       shadows={quality === 'high' ? { type: PCFSoftShadowMap } : false}
       dpr={dpr}
       gl={{ antialias: true, powerPreference: 'high-performance', stencil: false }}
-      camera={{ fov: 50, near: 0.1, far: 600, position: [3, 2.5, 5] }}
+      camera={{ fov: VIEW.fov, near: 0.05, far: 600, position: [0, VIEW.eyeHeight, 6] }}
       onCreated={(st) => { const { gl } = st; if (new URLSearchParams(window.location.search).has('debug')) { const w = window as unknown as Record<string, unknown>; w.__r3f = st; w.__player = playerState; w.__game = { getGame, setGame }; } gl.toneMapping = ACESFilmicToneMapping; gl.toneMappingExposure = 1; gl.outputColorSpace = SRGBColorSpace; }}
     >
       <PerformanceMonitor onDecline={() => setDpr(1)} onIncline={() => setDpr(maxDpr)} flipflops={3} onFallback={() => setDpr(1)} />

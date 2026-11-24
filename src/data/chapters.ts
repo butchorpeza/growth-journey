@@ -24,7 +24,7 @@ export const gameChapters: GameChapter[] = [
     theme: 'Digital transformation and becoming a Digital Growth Strategist.', mood: 'Cool architectural light, glass reflections, cinematic skyline.', status: 'planned' },
 ];
 
-/** the technical test range used while the character controller is built (Phase 03) */
+/** the technical test range used while the first-person controller is built (Phase 02) */
 export const prototypeChapter: GameChapter = {
   id: 'prototype', number: '00', title: 'Test Range', narrative: 'Technical prototype: movement, camera and physics.',
   theme: 'Temporary blockout for testing only.', mood: 'Neutral overcast HDRI.', status: 'prototype',

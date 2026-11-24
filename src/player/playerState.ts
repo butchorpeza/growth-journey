@@ -1,15 +1,12 @@
-/* Per-frame player data shared by the controller, the camera and the interaction manager (mutable, no React). */
+/* Per-frame player data shared by the controller, the camera and the interaction system (mutable, no React). */
 import { Vector3 } from 'three';
 
 export const playerState = {
   position: new Vector3(0, 1, 0),   // feet position (world)
   velocity: new Vector3(),
   grounded: true,
-  speed: 0,                          // horizontal speed, m/s
-  yaw: 0,                            // character facing
-  camYaw: 0.6, camPitch: 0.28,       // camera orbit angles (radians)
-  camDistance: 3.6,
+  speed: 0,                          // horizontal speed actually travelled, m/s
+  landImpact: 0,                     // 0…1, set on landing (fall speed), consumed by the camera's landing dip
+  camYaw: 0, camPitch: 0,            // view angles (radians); yaw 0 looks down -Z
   teleport: null as null | Vector3,  // set to move the player instantly (checkpoints)
-  action: null as null | 'interact', // one-shot body animation requested by gameplay (consumed by the Player)
-  faceTarget: null as null | Vector3, // turn to face this point (e.g. the object being inspected)
 };

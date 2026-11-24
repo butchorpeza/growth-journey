@@ -6,7 +6,7 @@ import type { ChapterId } from '../data/chapters';
 export type GameMode = 'loading' | 'intro' | 'playing' | 'paused' | 'reading';
 
 export interface Prompt { id: string; verb: string; label: string }
-export interface Settings { sensitivity: number; invertY: boolean; quality: 'high' | 'low'; audio: boolean; volume: number }
+export interface Settings { sensitivity: number; invertY: boolean; quality: 'high' | 'low'; audio: boolean; volume: number; reducedMotion: boolean }
 export interface SaveData { chapter: ChapterId; checkpoint: string | null; completed: ChapterId[]; discovered: string[]; restored: string[] }
 
 export interface GameState {
@@ -23,7 +23,8 @@ const SAVE_KEY = 'bo-journey-save-v1', SETTINGS_KEY = 'bo-journey-settings-v1';
 const load = <T,>(k: string, fallback: T): T => { try { const v = localStorage.getItem(k); return v ? { ...fallback, ...JSON.parse(v) } : fallback; } catch { return fallback; } };
 const store = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode: progress just isn't kept */ } };
 
-const defaultSettings: Settings = { sensitivity: 1, invertY: false, quality: 'high', audio: false, volume: 0.7 };
+const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const defaultSettings: Settings = { sensitivity: 1, invertY: false, quality: 'high', audio: false, volume: 0.7, reducedMotion: !!prefersReducedMotion };
 const defaultSave: SaveData = { chapter: 'prototype', checkpoint: null, completed: [], discovered: [], restored: [] };
 
 let state: GameState = {
