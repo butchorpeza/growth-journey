@@ -24,7 +24,7 @@ export function PlayerCamera() {
   const s = useRef({ eyeY: NaN, phase: 0, amp: 0, dip: 0, dipTarget: 0, t: 0 });
 
   useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 1 / 30);
+    const dt = Math.min(Math.max(rawDt, 0), 1 / 30);
     const g = getGame();
     const still = g.settings.reducedMotion;
     const st = s.current;

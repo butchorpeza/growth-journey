@@ -27,3 +27,6 @@ export const SURVIVAL_PATH: RailWaypoint[] = [
 
 /** the demonic portal at the end of the road (Portal.tsx): where it stands and the point it faces */
 export const PORTAL = { at: [35.2, 64.4] as [number, number], facing: [33.2, 60.6] as [number, number] };
+
+/** the electric poles that already carry a light (x, z): the gate pole and the three road poles */
+export const POLE_LIGHTS: [number, number][] = [[3.1, 4.2], [22.2, 36.0], [27.9, 47.5], [32.3, 58.5]];

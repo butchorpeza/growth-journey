@@ -8,7 +8,7 @@
 import { useGLTF } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { AdditiveBlending, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Mesh, MeshStandardMaterial, PointLight, Points, ShaderMaterial, Vector3, type Mesh as MeshT, type Object3D } from 'three';
 import { audio } from '../../audio/AudioEngine';
 import { GROUPS } from '../../physics/CollisionLayers';
@@ -72,6 +72,7 @@ export function Portal({ frame }: { frame: PlacedHouse }) {
   const camera = useThree((st) => st.camera);
   const tmp = useMemo(() => new Vector3(), []);
   const at = PORTAL.at;
+  useEffect(() => () => audio.setPortal(0), []);           // silence it when the chapter goes away
 
   const vortexMat = useMemo(() => new ShaderMaterial({
     uniforms: { uTime: { value: 0 } }, side: DoubleSide, toneMapped: false,
@@ -103,7 +104,7 @@ export function Portal({ frame }: { frame: PlacedHouse }) {
     // the sound: louder as you come closer, and heard from where the portal is in the view
     const d = Math.hypot(playerState.position.x - at[0], playerState.position.z - at[1]);
     tmp.set(at[0], frame.box.p[1], at[1]).applyMatrix4(camera.matrixWorldInverse);
-    audio.setPortal(Math.max(0, 1 - d / 34), tmp.x / Math.max(1, Math.hypot(tmp.x, tmp.z)));
+    audio.setPortal(Math.max(0, 1 - d / 45), tmp.x / Math.max(1, Math.hypot(tmp.x, tmp.z)));
   });
 
   const base = frame.object.position;

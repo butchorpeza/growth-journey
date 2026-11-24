@@ -1,7 +1,7 @@
 /* Lived-in details for Chapter 01:
-   - vehicles parked around the village, from Sketchfab (CC-BY 4.0, credited in CREDITS.md): a Filipino tricycle
-     (kotris666), a rusty motorbike (cansuaydin) and a jeepney (maclinmacalindong). Full detail (they are seen up
-     close), sat on the terrain, with box colliders; their footprints go to the scatter so plants keep clear.
+   - a rusty motorbike parked by the sungka shelter, from Sketchfab (cansuaydin, CC-BY 4.0, credited in
+     CREDITS.md). Full detail (it is seen up close), sat on the terrain, with a box collider; its footprint goes to
+     the scatter so plants keep clear.
    - a light in every house, so none of them reads as empty at night: a warm, flickering lamp inside (seen through
      the windows and the door, spilling onto the ground around the walls) and a bare bulb over the side that faces
      the path. On Low only the porch bulbs are lit (each point light costs every lit pixel). */
@@ -18,24 +18,20 @@ import { placeModel, terrainHeight, type PlacedHouse } from './Houses';
 import { SURVIVAL_BASE } from './layout';
 import { SURVIVAL_PATH } from './path';
 
-type VehicleModel = 'tricycle' | 'motorbike' | 'jeepney';
+type VehicleModel = 'motorbike';
 interface VehiclePlacement { model: VehicleModel; at: [number, number]; yaw: number; length: number }
 
-// parked off the walk, along the road and in front of the houses (yaw = heading of the vehicle's length)
+// parked off the walk (yaw = heading of the vehicle's length)
 export const VEHICLE_PLACEMENTS: VehiclePlacement[] = [
-  { model: 'jeepney', at: [18.2, 26.6], yaw: 0.9, length: 6.6 },        // on the road's shoulder past the sungka
-  { model: 'tricycle', at: [25.2, 36.9], yaw: 0.64 + Math.PI, length: 2.5 }, // waiting by the road, past the first pole
   { model: 'motorbike', at: [7.4, 28.6], yaw: 2.3, length: 2.05 },       // left by the sungka shelter
 ];
 
 export function usePlacedVehicles(terrain: Mesh | null): PlacedHouse[] {
-  const tricycle = useGLTF(`${SURVIVAL_BASE}/vehicles/tricycle.glb`, false, true).scene;
   const motorbike = useGLTF(`${SURVIVAL_BASE}/vehicles/motorbike.glb`, false, true).scene;
-  const jeepney = useGLTF(`${SURVIVAL_BASE}/vehicles/jeepney.glb`, false, true).scene;
   return useMemo(() => {
-    const models = { tricycle, motorbike, jeepney }, groundAt = terrainHeight(terrain);
+    const models = { motorbike }, groundAt = terrainHeight(terrain);
     return VEHICLE_PLACEMENTS.map((pl) => placeModel(models[pl.model], { ...pl, sink: 0.03 }, groundAt, `vehicle:${pl.model}`, 'vehicle'));
-  }, [tricycle, motorbike, jeepney, terrain]);
+  }, [motorbike, terrain]);
 }
 
 export function Vehicles({ vehicles }: { vehicles: PlacedHouse[] }) {

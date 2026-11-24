@@ -3,10 +3,9 @@
    carabao grass (fineGrass.ts) at the grass variants' positions.
    Every mesh of every variant becomes one InstancedMesh, so ~17k plants cost about one draw call per mesh.
 
-   Distance culling: the overcast fog swallows small plants within ~50 m, so each variant only draws the instances
-   within its radius of the visitor (ground cover 45 m, larger plants 80 m). The visible set is re-selected
-   whenever the visitor has moved a few metres, which keeps per-frame cost at zero. Ground cover is drawn at full
-   density within 16 m and one in three beyond (at grazing angles distant grass still reads as solid cover).
+   Distance: everything within 22 m, then a density that thins smoothly to 20% at the radius (ground cover 55 m,
+   larger plants 120 m). Each plant has a fixed random threshold, and plants near their threshold are scaled down,
+   so as the visitor walks plants grow in and out gradually rather than popping. Re-selected every 1.5 m walked.
    Low quality halves the ground cover and shortens the radii; only shrubs and saplings cast shadows (high).
    Every plant sways in the wind (rendering/wind.ts), except with reduced motion. */
 import { useGLTF } from '@react-three/drei';
@@ -23,10 +22,12 @@ import { SURVIVAL_BASE, type SurvivalLayout } from './layout';
 
 const GROUND_COVER = /^(grass|weed|nettle)__/;
 const CASTS_SHADOW = /^(shrub|sapling)__/;
-const RESELECT_AFTER = 4;      // metres moved before the visible set is rebuilt
-const NEAR_FULL = 16;          // m: ground cover at full density; beyond it, 1 in 3 (reads as solid at grazing angles)
+const RESELECT_AFTER = 1.5;    // metres moved before the visible set is rebuilt
+const NEAR_FULL = 22;          // m: full density; beyond it the density thins smoothly to FAR_DENSITY at the radius
+const FAR_DENSITY = 0.2;
+const GROW = 0.08;             // density margin over which a plant grows in from nothing (no popping)
 
-interface Batch { mesh: InstancedMesh; matrices: Float32Array; xz: Float32Array; radius: number; near: number }
+interface Batch { mesh: InstancedMesh; matrices: Float32Array; xz: Float32Array; radius: number; near: number; luck: Float32Array }
 
 export function Foliage({ layout, quality }: { layout: SurvivalLayout; quality: 'high' | 'medium' | 'low' }) {
   const { scene } = useGLTF(`${SURVIVAL_BASE}/foliage.glb`, false, true);
@@ -43,7 +44,7 @@ export function Foliage({ layout, quality }: { layout: SurvivalLayout; quality: 
       if (!root || !list.length) continue;
       const cover = GROUND_COVER.test(variant);
       const keep = quality === 'low' && cover ? list.filter((_, i) => i % 2 === 0) : list;
-      const radius = (cover ? 45 : 80) * (quality === 'low' ? 0.7 : 1);
+      const radius = (cover ? 55 : 120) * (quality === 'low' ? 0.7 : 1);
       const xz = new Float32Array(keep.length * 2);
       keep.forEach(([x, , z], i) => { xz[i * 2] = x; xz[i * 2 + 1] = z; });
       inv.copy(root.matrixWorld).invert();
@@ -64,30 +65,46 @@ export function Foliage({ layout, quality }: { layout: SurvivalLayout; quality: 
         im.receiveShadow = true;
         im.name = `foliage:${variant}`;
         ignoreRaycast(im);                                            // thin plants never block a look-at or focus
-        out.push({ mesh: im, matrices, xz, radius, near: cover ? NEAR_FULL * (quality === 'low' ? 0.7 : 1) : radius });
+        // each plant's fixed "luck" decides how far out it still shows (stable: the same plants every frame)
+        const luck = Float32Array.from({ length: keep.length }, (_, i) => { const h = Math.sin(i * 12.9898 + keep[i][0] * 78.233 + keep[i][2] * 37.719) * 43758.5453; return h - Math.floor(h); });
+        out.push({ mesh: im, matrices, xz, radius, near: NEAR_FULL * (quality === 'low' ? 0.7 : 1), luck });
       });
     }
     return out;
   }, [scene, layout, quality]);
 
-  // pick the instances within each batch's radius; re-run after the visitor moves RESELECT_AFTER metres
+  // pick the instances to draw: everything within `near`, then a density that thins smoothly to FAR_DENSITY at the
+  // radius and to nothing just beyond it. A plant shows while its fixed luck is under the density at its distance;
+  // within GROW of that threshold it is scaled down towards nothing, so plants grow in and out instead of popping.
+  // Re-run after the visitor moves RESELECT_AFTER metres.
   const last = useRef({ x: Infinity, z: Infinity });
   const select = (px: number, pz: number) => {
     for (const b of batches) {
-      const arr = b.mesh.instanceMatrix.array as Float32Array, r2 = b.radius * b.radius, n2 = b.near * b.near;
+      const arr = b.mesh.instanceMatrix.array as Float32Array, span = Math.max(1, b.radius - b.near);
       let n = 0;
       for (let i = 0; i < b.xz.length / 2; i++) {
-        const dx = b.xz[i * 2] - px, dz = b.xz[i * 2 + 1] - pz, d2 = dx * dx + dz * dz;
-        if (d2 < n2 || (d2 < r2 && i % 3 === 0)) { arr.set(b.matrices.subarray(i * 16, i * 16 + 16), n * 16); n++; }
+        const d = Math.hypot(b.xz[i * 2] - px, b.xz[i * 2 + 1] - pz);
+        if (d > b.radius + 8) continue;
+        const t = Math.min(1, Math.max(0, (d - b.near) / span));
+        let density = 1 - (1 - FAR_DENSITY) * t * t * (3 - 2 * t);
+        if (d > b.radius) density *= 1 - (d - b.radius) / 8;                // fade out just beyond the radius
+        const margin = density - b.luck[i];
+        if (margin <= 0) continue;
+        arr.set(b.matrices.subarray(i * 16, i * 16 + 16), n * 16);
+        if (margin < GROW) {
+          const k = margin / GROW, o = n * 16;
+          for (const j of [0, 1, 2, 4, 5, 6, 8, 9, 10]) arr[o + j] *= k;     // grow from the base (plants sit on their origin)
+        }
+        n++;
       }
       b.mesh.count = n;
       b.mesh.instanceMatrix.needsUpdate = true;
-      b.mesh.boundingSphere = new Sphere(new Vector3(px, 0, pz), b.radius + 10);
+      b.mesh.boundingSphere = new Sphere(new Vector3(px, 0, pz), b.radius + 18);
     }
     last.current = { x: px, z: pz };
   };
   useFrame((_, dt) => {
-    wind.time.value += Math.min(dt, 0.1);
+    wind.time.value += Math.min(Math.max(dt, 0), 0.1);
     wind.strength.value = getGame().settings.reducedMotion ? 0 : 1;
     const p = playerState.position;
     if (Math.hypot(p.x - last.current.x, p.z - last.current.z) > RESELECT_AFTER) select(p.x, p.z);

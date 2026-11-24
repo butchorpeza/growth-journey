@@ -36,7 +36,7 @@ export function RailController({ path }: { path: RailWaypoint[] }) {
   const tmp = useMemo(() => ({ p: new Vector3(), l: new Vector3(), eye: new Vector3() }), []);
 
   useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 1 / 20);
+    const dt = MathUtils.clamp(rawDt, 0, 1 / 20);          // never negative (a clock jump) nor a huge step
     const playing = getGame().mode === 'playing';
     if (playing) {
       rail.target += input.scroll * RAIL.metresPerPixel + input.forward * RAIL.keySpeed * dt;
@@ -46,9 +46,9 @@ export function RailController({ path }: { path: RailWaypoint[] }) {
     // ease toward the target with a capped speed
     const want = (rail.target - rail.s) * (1 - Math.exp(-RAIL.follow * dt));
     const step = MathUtils.clamp(want, -RAIL.maxSpeed * dt, RAIL.maxSpeed * dt);
-    rail.s += step;
+    rail.s = MathUtils.clamp(rail.s + step, 0, rail.length);
 
-    const t = curves.pos.getUtoTmapping(rail.s / rail.length, 0);
+    const t = curves.pos.getUtoTmapping(MathUtils.clamp(rail.s / rail.length, 0, 1), 0);
     curves.pos.getPoint(t, tmp.p);
     curves.look.getPoint(t, tmp.l);
     playerState.position.copy(tmp.p);

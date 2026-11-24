@@ -46,7 +46,7 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number], spawnYaw
   const timers = useRef({ sinceGround: 0, sinceJump: 9 });
 
   useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 1 / 30);
+    const dt = Math.min(Math.max(rawDt, 0), 1 / 30);
     const b = body.current, col = collider.current, c = kcc.current;
     if (!b || !col || !c) return;
 

@@ -54,18 +54,20 @@ export const LOOKS: Record<ChapterId, Look> = {
     },
   },
 
-  // 01 · Survival — a stormy night: heavy rain under a near-black overcast sky, cold faint moonlight, lightning
+  // 01 · Survival — a stormy night (the default; ?weather=dusk / afternoon / rain / sunny for the others): heavy rain under a near-black overcast sky, cold faint moonlight, lightning
   // that lights the whole valley for an instant, and the few warm lights of the village (the oil lamp in house A,
   // bulbs on the utility poles) glowing in the rain and smeared across the wet ground. Dark, but readable.
   survival: {
-    sky: { hdri: 'hdri/farmland_overcast_2k.hdr', envIntensity: 0.07, backgroundIntensity: 0.04, backgroundBlur: 0.04 },
-    sun: { direction: [0.25, 0.9, -0.35], color: '#8ea3c9', intensity: 0.22 },
-    fog: { color: '#10151c', density: 0.022 },
+    // readability pass: a little more sky light and moonlight, lifted exposure, a lighter haze, so the yard, fences
+    // and path read at night without losing the storm (the village lights still carry the scene)
+    sky: { hdri: 'hdri/farmland_overcast_2k.hdr', envIntensity: 0.12, backgroundIntensity: 0.06, backgroundBlur: 0.04 },
+    sun: { direction: [0.25, 0.9, -0.35], color: '#93a8cc', intensity: 0.34 },
+    fog: { color: '#161d27', density: 0.019 },
     sunFx: { flare: 0, rays: 0 },
     weather: { rain: 1, wetness: 1, cloudShadows: 0, lightning: 1 },
     practicals: 1,
     post: {
-      exposure: 0.55, toneMapping: 'aces', temperature: -0.14, tint: 0.01, contrast: 1.12, saturation: 0.78,
+      exposure: 0.72, toneMapping: 'aces', temperature: -0.14, tint: 0.01, contrast: 1.12, saturation: 0.78,
       lift: [0.004, 0.008, 0.016], gamma: [1.0, 1.0, 1.02], gain: [0.98, 1.0, 1.03],
       shadows: [0.1, 0.18, 0.32], highlights: [1.0, 0.78, 0.5], balance: 0.1,
       ao: { radius: 1.4, intensity: 2.4, falloff: 0.7 }, bloom: { intensity: 0.55, threshold: 0.55, smoothing: 0.3, radius: 0.75 },
@@ -122,6 +124,47 @@ export const LOOKS: Record<ChapterId, Look> = {
 /** alternative weather presets, chosen with ?weather=… */
 export const WEATHER_VARIANTS: Partial<Record<ChapterId, Record<string, Look>>> = {
   survival: {
+    // overcast late afternoon after rain (?weather=afternoon) (~4–5 PM): a mostly grey sky with a few blue openings and a
+  // soft, warm glow low in the west; the sun itself is behind cloud, so the light is soft and the shadows gentle,
+  // with drifting cloud shadows where it breaks through. Everything is still wet: dark mud, puddles holding the sky,
+  // damp leaves. A light blue-grey haze in the distance. Muted, earthy, natural colour; restrained grade, almost no
+  // bloom. The sun's compass direction matches the glow in the sky HDRI (measured: azimuth of [0.875, 0.06, 0.48]);
+  // its height is raised to ~18° for late-afternoon shadows (the HDRI's glow sits at 3°).
+    afternoon: {
+    sky: { hdri: 'hdri/citrus_orchard_road_puresky_2k.hdr', envIntensity: 0.9, backgroundIntensity: 0.9, backgroundBlur: 0 },
+    sun: { direction: [0.834, 0.309, 0.457], color: '#ffe4c4', intensity: 1.7 },
+    fog: { color: '#8e989d', density: 0.0055 },
+    sunFx: { flare: 0, rays: 0 },
+    weather: { rain: 0, wetness: 0.7, cloudShadows: 0.45 },
+    practicals: 0.3,
+    post: {
+      exposure: -0.12, toneMapping: 'neutral', temperature: 0.02, tint: 0.0, contrast: 1.06, saturation: 0.92,
+      lift: [0.004, 0.005, 0.007], gamma: [1.0, 1.0, 1.01], gain: [1.01, 1.0, 0.98],
+      shadows: [0.18, 0.24, 0.3], highlights: [1.0, 0.9, 0.76], balance: 0.02,
+      ao: { radius: 1.4, intensity: 2.4, falloff: 0.7 }, bloom: { intensity: 0.1, threshold: 1.0, smoothing: 0.2, radius: 0.6 },
+      vignette: { offset: 0.3, darkness: 0.45 }, grain: 0.02, chromatic: 0.0002,
+    },
+  },
+    // dusk after rain, 5:50 PM (?weather=dusk), turning into night: the sun has just set behind a grey-violet cloud
+    // deck, leaving a thin warm band on the western horizon. No direct sun: a weak, warm light from the afterglow
+    // (its direction matches the glow in the HDRI, measured at [0.791, 0.035, 0.611]) and a cool blue sky light. A
+    // blue-violet evening haze gathers in the distance; the ground is still wet and the puddles hold the last light.
+    // The village's lights are coming on (house lamps, pole bulbs): warm pools against the cool blue hour.
+    dusk: {
+      sky: { hdri: 'hdri/belfast_sunset_puresky_2k.hdr', envIntensity: 0.38, backgroundIntensity: 0.5, backgroundBlur: 0 },
+      sun: { direction: [0.788, 0.07, 0.611], color: '#ffb48e', intensity: 0.22 },
+      fog: { color: '#454b5c', density: 0.012 },
+      sunFx: { flare: 0, rays: 0 },
+      weather: { rain: 0, wetness: 0.75, cloudShadows: 0 },
+      practicals: 0.8,
+      post: {
+        exposure: 0.15, toneMapping: 'neutral', temperature: -0.07, tint: 0.01, contrast: 1.08, saturation: 0.9,
+        lift: [0.004, 0.005, 0.01], gamma: [1.0, 1.0, 1.02], gain: [1.0, 1.0, 1.01],
+        shadows: [0.14, 0.18, 0.32], highlights: [1.0, 0.84, 0.66], balance: 0.05,
+        ao: { radius: 1.4, intensity: 2.4, falloff: 0.7 }, bloom: { intensity: 0.3, threshold: 0.8, smoothing: 0.25, radius: 0.7 },
+        vignette: { offset: 0.25, darkness: 0.55 }, grain: 0.03, chromatic: 0.0002,
+      },
+    },
     rain: {
       sky: { hdri: 'hdri/farmland_overcast_2k.hdr', envIntensity: 0.95, backgroundIntensity: 0.85, backgroundBlur: 0.03 },
       sun: { direction: [0.3, 0.92, 0.25], color: '#dfe4e6', intensity: 0.35 },

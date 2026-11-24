@@ -34,7 +34,7 @@ export function PostFX({ look, quality, reducedMotion }: { look: Look; quality: 
   const fringe = useMemo(() => new Vector2(p.chromatic, p.chromatic * 0.6), [p.chromatic]);
 
   // depth of field: gentle. Only clearly distant or very near things soften; the in-focus band is wide.
-  const dof = useMemo(() => new DepthOfFieldEffect(camera, { focusDistance: 8, focusRange: 12, bokehScale: 0.9, resolutionScale: 0.5 }), [camera]);
+  const dof = useMemo(() => new DepthOfFieldEffect(camera, { focusDistance: 8, focusRange: 20, bokehScale: 0.4, resolutionScale: 0.5 }), [camera]);
   useEffect(() => () => dof.dispose(), [dof]);
 
   // sun: a disc on the sky's sun (source of the light rays), plus a lens flare that fades when the sun is blocked
@@ -55,7 +55,7 @@ export function PostFX({ look, quality, reducedMotion }: { look: Look; quality: 
   useFrame((_, dt) => {
     if (high) {
       dof.cocMaterial.focusDistance = focus.distance;
-      dof.cocMaterial.focusRange = Math.max(4, focus.distance * 1.8);
+      dof.cocMaterial.focusRange = Math.max(10, focus.distance * 3);   // a gentle falloff: the distance stays readable
     }
     if (sun) sun.position.copy(camera.position).addScaledVector(sunDir, SUN_DISTANCE);
     if (fx.flare <= 0) return;
@@ -76,7 +76,7 @@ export function PostFX({ look, quality, reducedMotion }: { look: Look; quality: 
       target = visible.current * onScreen * MathUtils.smoothstep(facing, 0.6, 0.95) * fx.flare;
     }
     // NB: the library's shader computes mix(flare, 0, opacity): its "opacity" 1 means NO flare, so invert
-    flareStrength.current = MathUtils.damp(flareStrength.current, target, 8, Math.min(dt, 0.1));
+    flareStrength.current = MathUtils.damp(flareStrength.current, target, 8, Math.min(Math.max(dt, 0), 0.1));
     flare.uniforms.get('opacity')!.value = 1 - flareStrength.current;
     const lp = flare.uniforms.get('lensPosition')!.value as Vector2;
     lp.set(tmp.proj.x, tmp.proj.y);
@@ -94,7 +94,7 @@ export function PostFX({ look, quality, reducedMotion }: { look: Look; quality: 
           <meshBasicMaterial color={sunHdr} fog={false} toneMapped={false} />
         </mesh>
       )}
-      <EffectComposer multisampling={high ? 2 : 0} enableNormalPass={false}>
+      <EffectComposer multisampling={high ? 4 : 0} enableNormalPass={false}>
         <N8AO aoRadius={p.ao.radius} intensity={p.ao.intensity} distanceFalloff={p.ao.falloff}
           quality={high ? 'low' : 'performance'} halfRes={false} color="black" />
         {high ? <primitive object={dof} /> : <></>}

@@ -7,9 +7,10 @@
    Heights come from a BVH raycast straight down onto the terrain. */
 import { Quaternion, Raycaster, Triangle, Vector3, type BufferAttribute, type Mesh } from 'three';
 import type { SurvivalLayout } from './layout';
-import { PORTAL, SURVIVAL_PATH } from './path';
+import { POLE_LIGHTS, PORTAL, SURVIVAL_PATH } from './path';
 
 export type Inst = [number, number, number, number, number];   // x, y, z, yaw, scale
+export type FloraKind = 'coconut' | 'mango' | 'raintree' | 'bamboo' | 'taro' | 'elephant' | 'fern';
 
 function rng(seed: number) {   // mulberry32
   return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
@@ -60,6 +61,35 @@ export function scatter(terrain: Mesh, layout: SurvivalLayout) {
   const VX = 2, VZ = 8, TX = 6, TZ = -18;
   const r = rng(20261124);
 
+  // ---- streetlights (Streetlights.tsx): every 7 m along the walk from the yard gate, alternating sides, 2.6–3.4 m out,
+  // skipping spots near the existing pole lights or anything solid. Registered as obstacles before any planting, so
+  // trees and plants keep clear of them. Each faces the path (its arm reaches over the walk).
+  const lamps: [number, number, number, number][] = [];
+  {
+    const pts = SURVIVAL_PATH.map((w) => w.at);
+    let along = 0, side = 1, nextAt = 8;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, az] = pts[i], [bx, bz] = pts[i + 1], len = Math.hypot(bx - ax, bz - az);
+      const nx = -(bz - az) / len, nz = (bx - ax) / len;
+      while (nextAt <= along + len) {
+        const t = (nextAt - along) / len, cx = ax + (bx - ax) * t, cz = az + (bz - az) * t;
+        nextAt += 7;
+        let placed = false;
+        for (const [sgn, off] of [[side, 2.6], [side, 3.4], [-side, 2.6], [-side, 3.4]]) {
+          const x = cx + nx * sgn * off, z = cz + nz * sgn * off;
+          if (POLE_LIGHTS.some(([px, pz]) => Math.hypot(px - x, pz - z) < 4.5) || clearance(x, z) < 0.9) continue;
+          const sm = sample(x, z); if (!sm) continue;
+          lamps.push([x, sm.y, z, Math.atan2(cx - x, cz - z)]);
+          obstacles.push({ x, z, ax: 1, az: 0, hx: 0.5, hz: 0.5, wall: false });
+          placed = true; break;
+        }
+        if (placed) side = -side;
+      }
+      along += len;
+    }
+  }
+
+
   // banana groves: plants grow in clumps from suckers, so place clump centres, then 2–5 plants around each
   const bananasNear: Inst[] = [], bananasFar: Inst[] = [];
   const grove = (out: Inst[], cx: number, cz: number, n: number, spread: number, minScale: number, onMud = false) => {
@@ -95,16 +125,62 @@ export function scatter(terrain: Mesh, layout: SurvivalLayout) {
     }
     return best;
   };
-  // a banana forest: a jittered 3.2 m grid over the whole map, clear of the houses, yards, road and the walk
+  // ---- the tropical mix (Flora.tsx draws it) ----
+  const flora: Record<FloraKind, Inst[]> = { coconut: [], mango: [], raintree: [], bamboo: [], taro: [], elephant: [], fern: [] };
+  // smooth value noise for natural zones: groves of coconut, stands of bamboo, open patches
+  const zone = (x: number, z: number, f: number, o: number) => {
+    const px = x / f + o, pz = z / f - o, ix = Math.floor(px), iz = Math.floor(pz), fx = px - ix, fz = pz - iz;
+    const h = (a: number, b: number) => { const t = Math.sin(a * 127.1 + b * 311.7 + o) * 43758.5453; return t - Math.floor(t); };
+    const sx = fx * fx * (3 - 2 * fx), sz = fz * fz * (3 - 2 * fz);
+    return (h(ix, iz) * (1 - sx) + h(ix + 1, iz) * sx) * (1 - sz) + (h(ix, iz + 1) * (1 - sx) + h(ix + 1, iz + 1) * sx) * sz;
+  };
+  const big: [number, number, number][] = [];   // canopy trees placed so far: x, z, crown radius
+  const roomFor = (x: number, z: number, rad: number) => big.every(([a, b, rr]) => Math.hypot(a - x, b - z) > rad + rr);
+  /** plant one of the mix at (x, z) if the site allows it; returns true when planted */
+  const plant = (kind: FloraKind | 'banana', x: number, z: number, onMud = false): boolean => {
+    const need = { raintree: [9, 6, 8], mango: [6, 5, 4.5], coconut: [3.2, 3, 1.4], bamboo: [4, 3.5, 2.2], banana: [2.2, 2.4, 0], taro: [1.4, 1.6, 0], elephant: [1.4, 1.6, 0], fern: [1.2, 1.4, 0] }[kind];
+    const [clear, fromPath, crown] = need;
+    if (clearance(x, z) < clear || pathDist(x, z) < fromPath) return false;
+    if (crown > 0 && !roomFor(x, z, crown)) return false;
+    const s = sample(x, z);
+    if (!s || (!onMud && (s.mud > 0.22 || s.soil > 0.45))) return false;
+    const scale = { raintree: 0.85 + r() * 0.3, mango: 0.8 + r() * 0.4, coconut: 0.75 + r() * 0.55, bamboo: 0.7 + r() * 0.5, banana: 1.05 + r() * 0.6, taro: 0.7 + r() * 0.6, elephant: 0.7 + r() * 0.6, fern: 0.7 + r() * 0.6 }[kind];
+    const inst: Inst = [x, s.y - 0.05, z, r() * Math.PI * 2, scale];
+    if (kind === 'banana') bananasFar.push(inst); else flora[kind].push(inst);
+    if (crown > 0) big.push([x, z, crown]);
+    return true;
+  };
+  // hero trees first (they need the most room): a few rain trees on the open slopes, mango trees scattered
+  for (let i = 0; i < 4000 && flora.raintree.length < 14; i++) {
+    const x = TX + (r() * 2 - 1) * 105, z = TZ + (r() * 2 - 1) * 105;
+    if (Math.hypot(x - VX, z - VZ) < 16) continue;
+    plant('raintree', x, z);
+  }
+  for (let i = 0; i < 6000 && flora.mango.length < 46; i++) {
+    const x = TX + (r() * 2 - 1) * 105, z = TZ + (r() * 2 - 1) * 105;
+    if (Math.hypot(x - VX, z - VZ) < 12) continue;
+    plant('mango', x, z);
+  }
+  // then a jittered 3.2 m grid over the map: each cell one plant, the species set by its zone, so there are coconut
+  // groves, bamboo stands, wild banana clumps and an understorey of ferns, taro and elephant ear between them
   for (let gx = TX - 112; gx <= TX + 112; gx += 3.2) {
     for (let gz = TZ - 112; gz <= TZ + 112; gz += 3.2) {
       const x = gx + (r() - 0.5) * 2.6, z = gz + (r() - 0.5) * 2.6;
-      if (Math.hypot(x - VX, z - VZ) < 18 || clearance(x, z) < 7 || pathDist(x, z) < 4.5 || r() < 0.06) continue;
-      const s = sample(x, z);
-      if (!s || s.mud > 0.2 || s.soil > 0.4) continue;
-      grove(bananasFar, x, z, 1 + Math.floor(r() * 3), 1.6, 1.15);
+      if (Math.hypot(x - VX, z - VZ) < 16) continue;
+      const grove = zone(x, z, 26, 3.1), bamboo = zone(x, z, 19, 8.7), wild = zone(x, z, 13, 5.3), roll = r();
+      if (bamboo > 0.72) { if (roll < 0.5) plant('bamboo', x, z); continue; }
+      if (grove > 0.55 && roll < 0.55) { if (plant('coconut', x, z)) continue; }
+      else if (roll < 0.16) { if (plant('coconut', x, z)) continue; }
+      const under = r();
+      if (wild > 0.6 && under < 0.45) plant('banana', x, z);
+      else if (under < 0.32) plant('fern', x, z);
+      else if (under < 0.5) plant('taro', x, z);
+      else if (under < 0.62) plant('elephant', x, z);
     }
   }
+
+  // by the houses: a coconut palm or two at the edge of some of the banana gardens
+  for (const [cx, cz] of centres) if (r() < 0.45) { const a = r() * Math.PI * 2; plant('coconut', cx + Math.cos(a) * 3.5, cz + Math.sin(a) * 3.5); }
 
   // the forest behind the portal: the road ends at the gate and the banana forest closes in around and behind it,
   // so the portal stands at the edge of a dense wood. A 1.9 m jittered grid over a 30 m disc, thinning towards its
@@ -120,7 +196,12 @@ export function scatter(terrain: Mesh, layout: SurvivalLayout) {
         if (clearance(x, z) < 2.2 || pathDist(x, z) < 3.5) continue;
         const s = sample(x, z);
         if (!s || (s.mud > 0.45 && front > -0.3)) continue;           // behind the gate the road is swallowed by the forest
-        grove(bananasFar, x, z, 2 + Math.floor(r() * 3), 1.1, 1.1, true);
+        const onMud = front <= -0.3, roll = r();
+        if (roll < 0.18) plant('coconut', x, z, onMud);
+        else if (roll < 0.3) plant('bamboo', x, z, onMud);
+        else if (roll < 0.36) plant('mango', x, z, onMud);
+        else if (roll < 0.7) grove(bananasFar, x, z, 1 + Math.floor(r() * 3), 1.1, 1.1, onMud);
+        else plant(roll < 0.85 ? 'elephant' : 'fern', x, z, onMud);
       }
     }
   }
@@ -142,13 +223,17 @@ export function scatter(terrain: Mesh, layout: SurvivalLayout) {
           if (!s || s.mud > 0.35 || s.soil > 0.55) continue;
           pathGrass.push([x, s.y - 0.02, z, r() * Math.PI * 2, 1.0 + r() * 0.8]);
         }
-        // bananas: a continuous line along both sides, every ~2.2 m, 2.4–5 m out, to the very end of the path
+        // a continuous planted edge along both sides, every ~2.2 m: bananas by the houses (the first part of the
+        // walk), further on a mix of coconut palms set back, bananas, taro, elephant ear and ferns at the verge
         if ((Math.round(d / 1.1) % 2) === 0 && r() < 0.92) {
           const off = 2.4 + r() * 2.6, x = cx + nx * side * off, z = cz + nz * side * off;
           if (clearance(x, z) < 2.5) continue;
           const s = sample(x, z);
           if (!s || s.mud > 0.3 || s.soil > 0.5) continue;
-          grove(bananasFar, x, z, 1 + Math.floor(r() * 3), 1.2, 1.05);
+          const village = i < 9, roll = r();
+          if (village || roll < 0.35) grove(bananasFar, x, z, 1 + Math.floor(r() * 3), 1.2, 1.05);
+          else if (roll < 0.55) plant('coconut', cx + nx * side * (off + 1.5), cz + nz * side * (off + 1.5));
+          else plant(roll < 0.72 ? 'taro' : roll < 0.86 ? 'elephant' : 'fern', x, z);
         }
       }
     }
@@ -181,5 +266,5 @@ export function scatter(terrain: Mesh, layout: SurvivalLayout) {
   // path-edge grass is shared out across the carabao grass variants
   const gv = Object.keys(layout.foliage).filter((v) => v.startsWith('grass__'));
   pathGrass.forEach((g, i) => { if (gv.length) (grass[gv[i % gv.length]] ??= []).push(g); });
-  return { bananasNear, bananasFar, grass };
+  return { bananasNear, bananasFar, grass, flora, lamps };
 }

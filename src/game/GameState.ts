@@ -6,7 +6,7 @@ import type { ChapterId } from '../data/chapters';
 export type GameMode = 'loading' | 'intro' | 'playing' | 'paused' | 'reading';
 
 export interface Prompt { id: string; verb: string; label: string }
-export interface Settings { sensitivity: number; invertY: boolean; quality: 'high' | 'medium' | 'low'; audio: boolean; volume: number; reducedMotion: boolean; widescreenBars: boolean; movement: 'scroll' | 'free' }
+export interface Settings { sensitivity: number; invertY: boolean; quality: 'high' | 'medium' | 'low'; audio: boolean; volume: number; reducedMotion: boolean; widescreenBars: boolean; movement: 'scroll' | 'free'; guide: boolean }
 export interface SaveData { chapter: ChapterId; checkpoint: string | null; completed: ChapterId[]; discovered: string[]; restored: string[] }
 
 export interface GameState {
@@ -25,14 +25,18 @@ const load = <T,>(k: string, fallback: T): T => { try { const v = localStorage.g
 const store = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode: progress just isn't kept */ } };
 
 const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-const defaultSettings: Settings = { sensitivity: 1, invertY: false, quality: 'high', audio: false, volume: 0.7, reducedMotion: !!prefersReducedMotion, widescreenBars: false, movement: 'scroll' };
+const defaultSettings: Settings = { sensitivity: 1, invertY: false, quality: 'high', audio: true, volume: 0.7, reducedMotion: !!prefersReducedMotion, widescreenBars: false, movement: 'scroll', guide: true };
 const defaultSave: SaveData = { chapter: 'survival', checkpoint: null, completed: [], discovered: [], restored: [] };
 
-/** one-time settings fixes: rev 2 restores High quality for everyone (earlier builds could step it down) */
-const SETTINGS_REV = 2;
+/** settings the visitor doesn't choose (the pause menu only offers volume and movement): High graphics, sound on
+ *  (volume 0 mutes it), full screen without bars, normal look, and reduced motion from the system preference.
+ *  Applied on every load, so settings saved by earlier builds can't leave anyone on Low or muted. */
 function migrateSettings(s: Settings & { rev?: number }): Settings {
-  if ((s.rev ?? 1) < SETTINGS_REV) { s = { ...s, quality: 'high', rev: SETTINGS_REV }; store(SETTINGS_KEY, s); }
-  return s;
+  const fixed = { quality: 'high' as const, audio: true, widescreenBars: false, invertY: false, sensitivity: 1, reducedMotion: !!prefersReducedMotion };
+  const known = Object.fromEntries(Object.keys(defaultSettings).map((k) => [k, s[k as keyof Settings] ?? defaultSettings[k as keyof Settings]])) as unknown as Settings;   // drops keys from older builds
+  const next = { ...known, ...fixed };
+  if (JSON.stringify(next) !== JSON.stringify(s)) store(SETTINGS_KEY, next);
+  return next;
 }
 
 /** Chapter 01 is the starting world; ?range opens the technical test range instead */

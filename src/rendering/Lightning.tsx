@@ -16,7 +16,7 @@ export function Lightning({ look }: { look: Look }) {
   const strength = look.weather?.lightning ?? 0;
 
   useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 0.1), s = st.current;
+    const dt = Math.min(Math.max(rawDt, 0), 0.1), s = st.current;
     if (strength <= 0 || getGame().settings.reducedMotion) { scene.environmentIntensity = look.sky.envIntensity; scene.backgroundIntensity = look.sky.backgroundIntensity; if (flash.current) flash.current.intensity = 0; return; }
     s.t += dt;
     if (s.t >= s.next) {

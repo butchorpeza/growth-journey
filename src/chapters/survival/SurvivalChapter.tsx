@@ -11,21 +11,27 @@ import { useGLTF } from '@react-three/drei';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { CuboidCollider, RigidBody, TrimeshCollider, type RapierRigidBody } from '@react-three/rapier';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BufferAttribute, Color, FileLoader, Group, type PointLight, Matrix4, MeshBasicMaterial, Quaternion, TextureLoader, Vector3, type Mesh, type Object3D } from 'three';
-import { discover, getGame, setGame, useGame } from '../../game/GameState';
+import { BufferAttribute, FileLoader, Group, type PointLight, Matrix4, MeshBasicMaterial, Quaternion, TextureLoader, Vector3, type Mesh, type Object3D, type Texture } from 'three';
+import { useGame } from '../../game/GameState';
 import { Interactable } from '../../interactions/Interactable';
 import { GROUPS } from '../../physics/CollisionLayers';
 import { buildBoundsTrees } from '../../rendering/bvh';
 import { lookFor } from '../../rendering/looks';
 import { Rain } from '../../rendering/Rain';
-import { applyWeather, buildShelterMap, weather } from '../../rendering/weather';
+import { applyWeather, buildPuddleMap, buildShelterMap, weather } from '../../rendering/weather';
 import { playerState } from '../../player/playerState';
 import { rail } from '../../player/rail';
 import { audio } from '../../audio/AudioEngine';
 import { Foliage } from './Foliage';
 import { SURVIVAL_BASE, type SurvivalLayout } from './layout';
 import { Bananas } from './Bananas';
+import { Flora } from './Flora';
+import { Animals } from './Animals';
+import { Streetlights } from './Streetlights';
+import { Trail } from './Trail';
+import { Discoveries, LampGlow, lampBoost, lampFx, nowS, openDiscovery } from './Discoveries';
 import { Houses, usePlacedHouses } from './Houses';
+import { buildHouseA, buildHouseADoor, createHouseMaterials, houseTextureUrls } from './houseA';
 import { Portal, usePortalFrame } from './Portal';
 import { HouseLights, usePlacedVehicles, Vehicles } from './Props';
 import { scatter } from './scatter';
@@ -37,7 +43,7 @@ const HIT = new MeshBasicMaterial({ colorWrite: false, depthWrite: false });
 interface Prepared { terrain: Mesh | null; door: Group | null; verts: Float32Array; index: Uint32Array }
 
 /** one-time preparation of the cached GLTF scene (idempotent: the result is stored on the scene) */
-function prepare(world: Object3D, layout: SurvivalLayout, terrainMat: Mesh['material']): Prepared {
+function prepare(world: Object3D, layout: SurvivalLayout, terrainMat: Mesh['material'], houseTex: Texture[]): Prepared {
   if (world.userData.prepared) return world.userData.prepared as Prepared;
   world.updateMatrixWorld(true);
   let terrain: Mesh | null = null;
@@ -80,8 +86,19 @@ function prepare(world: Object3D, layout: SurvivalLayout, terrainMat: Mesh['mate
       part.removeFromParent(); local.decompose(part.position, part.quaternion, part.scale); door.add(part);
     }
   }
+  // house A rebuilt (houseA.ts): a cottage with a thatched gable roof, timber frame, bamboo walls and a panelled door
+  // on the original footprint, hinge and openings. The original box walls and single-slope roof are hidden (the
+  // build keeps them as separate named meshes so their materials and the interior stay intact); the old door board
+  // stays in the hinge group, hidden.
+  const houseMats = createHouseMaterials(houseTex, world, door);
+  if (houseMats) {
+    world.traverse((o) => { if (/^A_(wall|gable|band|roof|patch|rafter|purlin|plate)/.test(o.name)) o.visible = false; });
+    world.add(buildHouseA(houseMats));
+    if (door && d) { door.children.forEach((c) => { c.visible = false; }); door.add(buildHouseADoor(houseMats, d.width, d.height)); }
+    world.updateMatrixWorld(true);
+  }
   // weather (cloud shadows, wetness, puddles on the terrain) on every lit surface, after the terrain material is set
-  const lit = (o: Object3D) => { const m = o as Mesh; if (m.isMesh) (Array.isArray(m.material) ? m.material : [m.material]).forEach((mm) => applyWeather(mm, { puddles: o === t })); };
+  const lit = (o: Object3D) => { const m = o as Mesh; if (m.isMesh) (Array.isArray(m.material) ? m.material : [m.material]).forEach((mm) => applyWeather(mm, { puddles: o === t, matte: mm.name === 'houseA_thatch' })); };
   world.traverse(lit); door?.traverse(lit);
   buildBoundsTrees(world);                                 // fast look-at / autofocus raycasts
   if (door) buildBoundsTrees(door);
@@ -96,24 +113,28 @@ export function SurvivalChapter() {
   const { scene: world } = useGLTF(`${SURVIVAL_BASE}/world.glb`, false, true);
   const ground = useLoader(TextureLoader, terrainTextureUrls(`${SURVIVAL_BASE}/ground`));
   const terrainMat = useMemo(() => createTerrainMaterial(ground), [ground]);
-  const prepared = useMemo(() => prepare(world, layout, terrainMat), [world, layout, terrainMat]);
+  const houseTex = useLoader(TextureLoader, houseTextureUrls(SURVIVAL_BASE));
+  const prepared = useMemo(() => prepare(world, layout, terrainMat, houseTex), [world, layout, terrainMat, houseTex]);
   const quality = useGame((s) => s.settings.quality);
   // weather for this chapter's Look; the shelter map (what is under a roof) is rendered once per visit
   const look = lookFor('survival');
   const gl = useThree((st) => st.gl);
   const shelter = useMemo(() => buildShelterMap(gl, world, [2, 8], 170), [gl, world]);
+  // puddles in the hollows of the village and the road (needs the terrain's BVH from prepare())
+  useMemo(() => prepared.terrain && buildPuddleMap(prepared.terrain, [14, 28], 150), [prepared]);
   useEffect(() => {
     weather.wetness.value = look.weather?.wetness ?? 0;
     weather.cloudStrength.value = look.weather?.cloudShadows ?? 0;
   }, [look]);
-  useFrame((_, dt) => { weather.time.value += Math.min(dt, 0.1); });
+  useFrame((_, dt) => { weather.time.value += Math.min(Math.max(dt, 0), 0.1); });
   // detailed Sketchfab houses (replace houses B and C, plus one by the road); the scatter keeps clear of them
   const houses = usePlacedHouses(prepared.terrain);
   const vehicles = usePlacedVehicles(prepared.terrain);
   const portalFrame = usePortalFrame(prepared.terrain);
   const scatterLayout = useMemo(() => ({ ...layout, colliders: [...layout.colliders, ...houses.map((h) => h.box), ...vehicles.map((v) => v.box), portalFrame.box] }), [layout, houses, vehicles, portalFrame]);
   // banana groves + extra grass, placed on the terrain (needs the terrain's BVH from prepare())
-  const extra = useMemo(() => (prepared.terrain ? scatter(prepared.terrain, scatterLayout) : { bananasNear: [], bananasFar: [], grass: {} }), [prepared, scatterLayout]);
+  const extra = useMemo(() => (prepared.terrain ? scatter(prepared.terrain, scatterLayout) : { bananasNear: [], bananasFar: [], grass: {}, flora: { coconut: [], mango: [], raintree: [], bamboo: [], taro: [], elephant: [], fern: [] }, lamps: [] as [number, number, number, number][] }), [prepared, scatterLayout]);
+  useEffect(() => { if (new URLSearchParams(window.location.search).has('debug')) (window as unknown as Record<string, unknown>).__flora = extra.flora; }, [extra]);
   const planted = useMemo(() => {
     const foliage = { ...layout.foliage };
     for (const [v, list] of Object.entries(extra.grass)) foliage[v] = [...(foliage[v] ?? []), ...list];
@@ -134,22 +155,28 @@ export function SurvivalChapter() {
 
       {prepared.door && <Door layout={layout} parts={prepared.door} />}
 
-      {layout.interactables.filter((it) => it.narrativeId).map((it) => (
-        <Interactable key={it.id} id={it.id} label={it.label} verb={it.verb} narrativeId={it.narrativeId} position={it.p}>
+      {/* the photo wall (Discoveries) replaces the cabinet photograph's interaction; the oil lamp swells when examined */}
+      {layout.interactables.filter((it) => it.narrativeId && it.id !== 'survival-photograph').map((it) => (
+        <Interactable key={it.id} id={it.id} label={it.label} verb={it.verb} narrativeId={it.narrativeId} position={it.p}
+          onInteract={it.id === 'survival-lamp' ? () => { lampFx.at = nowS(); openDiscovery('survival-lamp'); } : undefined}>
           <mesh material={HIT}><boxGeometry args={it.id === 'survival-sungka' ? [0.8, 0.35, 0.45] : [0.45, 0.5, 0.45]} /></mesh>
         </Interactable>
       ))}
 
       {layout.lights.map((l, i) => <OilLamp key={i} p={l.p} color={l.color} intensity={l.intensity * (look.practicals ? 4 : 2.2)} distance={l.distance} />)}
-      {(look.practicals ?? 0) > 0 && <Practicals strength={look.practicals!} />}
+      {layout.lights.map((l, i) => <LampGlow key={`g${i}`} p={l.p} />)}
+      {(look.practicals ?? 0) > 0 && <Streetlights lamps={extra.lamps} strength={look.practicals!} />}
 
       <Houses houses={houses} />
       <HouseLights houses={houses} strength={look.practicals ?? 0.5} quality={quality} />
       <Vehicles vehicles={vehicles} />
       <Foliage layout={planted} quality={quality} />
       <Bananas near={extra.bananasNear} far={extra.bananasFar} quality={quality} />
+      <Flora flora={extra.flora} quality={quality} />
+      <Animals world={world} />
       <Portal frame={portalFrame} />
-      <ChapterExit layout={layout} />
+      <Discoveries vehicles={vehicles} portal={portalFrame} />
+      <Trail world={world} />
       {(look.weather?.rain ?? 0) > 0 && <Rain intensity={look.weather!.rain} quality={quality} />}
       <RoofRain heightAt={shelter.heightAt} active={(look.weather?.rain ?? 0) > 0} />
     </group>
@@ -171,7 +198,7 @@ function Door({ layout, parts }: { layout: SurvivalLayout; parts: Group }) {
     // scroll mode: the door opens by itself as the path reaches it (E still works)
     if (rail.active && !open && Math.hypot(playerState.position.x - (d.hinge[0] + d.width / 2), playerState.position.z - d.hinge[2]) < 2.4) setOpen(true);
     const target = open ? d.openYaw : d.closedYaw;
-    yaw.current += (target - yaw.current) * (1 - Math.exp(-4 * Math.min(dt, 1 / 30)));
+    yaw.current += (target - yaw.current) * (1 - Math.exp(-4 * Math.min(Math.max(dt, 0), 1 / 30)));
     if (pivot.current) pivot.current.rotation.y = yaw.current;
     body.current?.setNextKinematicRotation(q.setFromAxisAngle(up, yaw.current));
   });
@@ -198,33 +225,16 @@ function OilLamp({ p, color, intensity, distance }: { p: [number, number, number
   const ref = useRef<PointLight>(null);
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
-    if (ref.current) ref.current.intensity = intensity * (0.9 + 0.06 * Math.sin(t * 7.3) + 0.04 * Math.sin(t * 13.1 + 1.7) + 0.03 * Math.sin(t * 2.1));
+    // examined (E): the flame swells, the light rises by up to 80% and reaches a little further, then settles
+    const k = lampBoost();
+    if (ref.current) {
+      ref.current.intensity = intensity * (1 + 0.8 * k) * (0.9 + 0.06 * Math.sin(t * 7.3) + 0.04 * Math.sin(t * 13.1 + 1.7) + 0.03 * Math.sin(t * 2.1));
+      ref.current.distance = distance * (1 + 0.35 * k);
+    }
   });
   return <pointLight ref={ref} position={p} color={color} intensity={intensity} distance={distance} decay={2} />;
 }
 
-/** the village's few electric lights at night: a bulb on the pole by the gate, one under the sungka shelter, and
- *  lamps on the road's utility poles. Warm sodium-like light; the bulbs are HDR-bright so they bloom in the rain. */
-const PRACTICALS: { p: [number, number, number]; intensity: number; distance: number }[] = [
-  { p: [3.1, 4.4, 4.2], intensity: 16, distance: 16 },      // pole by the yard gate
-  { p: [3.4, 2.25, 26.5], intensity: 7, distance: 9 },      // bulb hanging in the sungka shelter
-  { p: [22.2, 5.2, 36.0], intensity: 18, distance: 17 },    // road poles
-  { p: [27.9, 5.2, 47.5], intensity: 18, distance: 17 },
-  { p: [32.3, 5.2, 58.5], intensity: 18, distance: 17 },
-];
-const BULB = new MeshBasicMaterial({ color: new Color('#ffb46a').multiplyScalar(30), toneMapped: false, fog: false });
-function Practicals({ strength }: { strength: number }) {
-  return (
-    <>
-      {PRACTICALS.map((l, i) => (
-        <group key={i} position={l.p}>
-          <pointLight color="#ffb06a" intensity={l.intensity * strength} distance={l.distance} decay={2} />
-          <mesh material={BULB} raycast={() => {}}><sphereGeometry args={[0.07, 12, 8]} /></mesh>
-        </group>
-      ))}
-    </>
-  );
-}
 
 /** tells the audio engine when the visitor stands under a roof in the rain (rain drums on the corrugated iron) */
 function RoofRain({ heightAt, active }: { heightAt: (x: number, z: number) => number; active: boolean }) {
@@ -235,18 +245,3 @@ function RoofRain({ heightAt, active }: { heightAt: (x: number, z: number) => nu
   return null;
 }
 
-/** reaching the end of the road out of the village ends the chapter (for now: a narrative panel) */
-function ChapterExit({ layout }: { layout: SurvivalLayout }) {
-  const done = useRef(false);
-  useFrame(() => {
-    if (done.current || getGame().mode !== 'playing') return;
-    const e = layout.exit, p = playerState.position;
-    if (Math.hypot(p.x - e.p[0], p.z - e.p[2]) < e.r) {
-      done.current = true;
-      discover('survival-exit');
-      setGame({ mode: 'reading', reading: e.narrativeId, prompt: null });
-      document.exitPointerLock?.();
-    }
-  });
-  return null;
-}

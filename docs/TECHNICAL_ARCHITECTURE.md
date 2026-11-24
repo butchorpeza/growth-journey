@@ -70,11 +70,11 @@ character controller. Nothing is rendered for it.
 
 **Eyes** (`PlayerCamera.tsx`), tuned in `VIEW` in `movement.ts`:
 - Eye height is 1.62 m. FOV is 55° (a cinematic lens), plus up to 3° at full sprint.
-- Mouse look needs no button. Where the browser allows it, "Start exploring" takes pointer lock (cursor hidden, unlimited turning; Esc pauses). Otherwise **hover look** applies: the view follows the mouse while it's over the game, and holding the cursor in the outer 15% of the screen keeps turning (up to 1.9 rad/s sideways, 0.8 rad/s up and down, eased in across the edge band). The cursor is hidden over the game while playing (the centre reticle replaces it) and comes back for the intro, pause menu and reading panels. Sensitivity and inverted Y are in the pause menu. Pitch is limited to ±85°.
+- Mouse look needs no button. Where the browser allows it, "Start exploring" takes pointer lock (cursor hidden, unlimited turning; Esc pauses). Otherwise **hover look** applies: the view follows the mouse while it's over the game, and holding the cursor in the outer 15% of the screen keeps turning (up to 1.9 rad/s sideways, 0.8 rad/s up and down, eased in across the edge band). The cursor is hidden over the game while playing (the centre reticle replaces it) and comes back for the intro, pause menu and reading panels. Sensitivity and vertical look are fixed (no settings). Pitch is limited to ±85°.
 - Head bob makes one cycle per stride, driven by the distance actually travelled, so walking into a wall doesn't bob. Peak-to-peak it measures about 4.8 cm walking and 6.8 cm sprinting. It fades in and out with speed.
 - Hard landings give a small view dip, scaled by fall speed.
 - The eye eases up and down stairs instead of snapping with each autostep. It never lags more than 0.3 m behind the body.
-- **Reduce motion** (pause menu; it defaults to the OS `prefers-reduced-motion` setting) turns off bob, landing dip and sprint FOV.
+- **Reduce motion** follows the OS `prefers-reduced-motion` setting (there is no toggle) and turns off bob, landing dip and sprint FOV.
 - Camera collision: the camera sits inside the capsule, whose radius (0.32 m) is far larger than the near plane (0.05 m), so the view can't pass through walls.
 
 **Cinematics.** While `cameraOverride.active` is set (by a GSAP timeline), the camera follows the override's
@@ -106,7 +106,7 @@ Frame-rate values (position, velocity, view angles) live in `playerState.ts`. Th
 
 Saved in localStorage, with no personal data:
 - **Progress:** chapter, checkpoint, completed chapters, discovered objects, restored structures.
-- **Settings:** sensitivity, invert Y, reduce motion, graphics quality, audio (off by default).
+- **Settings:** the pause menu (a black-and-white panel on the left over the blurred game, in the handwritten Caveat face) offers only resume, back to the home page, volume, movement (Scroll / WASD), the saved-progress note and reset. Graphics are always High (only the render resolution adapts), sound is always on (volume 0 mutes it), no letterbox bars; these are reapplied on every load, so settings from older builds can't override them.
 
 ## 7. Chapter 01 pipeline
 

@@ -9,7 +9,7 @@ import { AdaptiveDpr, PerformanceMonitor, useProgress } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
 import { Suspense, useEffect, useState } from 'react';
-import { ACESFilmicToneMapping, PCFShadowMap, SRGBColorSpace } from 'three';
+import { ACESFilmicToneMapping, PCFShadowMap, SRGBColorSpace, type Mesh, type Object3D, type Texture } from 'three';
 import { Footsteps } from '../audio/Footsteps';
 import { TestRange } from '../chapters/prototype/TestRange';
 import { SURVIVAL_SPAWN, yawTowards } from '../chapters/survival/layout';
@@ -39,15 +39,31 @@ const SPAWN: Partial<Record<ChapterId, { p: [number, number, number]; yaw: numbe
   survival: { p: SURVIVAL_SPAWN.p, yaw: yawTowards(SURVIVAL_SPAWN.p, SURVIVAL_SPAWN.lookAt) },
 };
 
-const DPR = { high: 1.5, medium: 1.2, low: 1.0 } as const;
+// High renders at the screen's own pixel density (up to 2×): a 1.5× cap left Retina screens visibly soft
+const DPR = { high: typeof window !== 'undefined' ? Math.min(2, Math.max(1.5, window.devicePixelRatio || 1)) : 1.5, medium: 1.2, low: 1.0 } as const;
 
 function LoadWatcher() {
   const { active, progress } = useProgress();
+  const gl = useThree((s) => s.gl), scene = useThree((s) => s.scene);
   useEffect(() => {
     if (getGame().mode === 'loading') setGame({ loadProgress: Math.round(progress) });
+    if (!active && progress >= 100) sharpenTextures(scene, gl.capabilities.getMaxAnisotropy());
     if (!active && progress >= 100 && getGame().mode === 'loading') setGame({ mode: 'intro' });
-  }, [active, progress]);
+  }, [active, progress, gl, scene]);
   return null;
+}
+
+/** every texture in the scene at full anisotropic filtering: without it, ground, walls and roofs seen at a slant
+ *  smear into blur (the single largest sharpness cost; the GPU cost is small on any recent hardware) */
+function sharpenTextures(scene: Object3D, max: number) {
+  const slots = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap', 'alphaMap'] as const;
+  scene.traverse((o) => {
+    const mats = (o as Mesh).material; if (!mats) return;
+    for (const m of Array.isArray(mats) ? mats : [mats]) for (const k of slots) {
+      const t = (m as unknown as Record<string, Texture | null>)[k];
+      if (t && t.anisotropy < max) { t.anisotropy = max; t.needsUpdate = true; }
+    }
+  });
 }
 
 /** without post-processing the renderer tone-maps itself (with the Look's exposure); with it, the composer does */
@@ -84,7 +100,7 @@ export default function GameCanvas() {
     >
       {/* keep the chosen quality (High by default); only the render resolution adapts when the frame rate drops */}
       <PerformanceMonitor bounds={() => [45, 58]} flipflops={4}
-        onDecline={() => { if (document.hidden || !document.hasFocus()) return; setDpr((d) => (d > 1.01 ? 1 : 0.85)); }}
+        onDecline={() => { if (document.hidden || !document.hasFocus()) return; setDpr((d) => (d > 1.26 ? Math.max(1, d - 0.25) : 1)); }}   // step down gently, never below native 1×
         onIncline={() => setDpr(maxDpr)} onFallback={() => setDpr(1)} />
       <AdaptiveDpr pixelated={false} />
       <RendererToneMapping look={look} post={post} />

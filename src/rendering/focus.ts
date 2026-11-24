@@ -21,7 +21,7 @@ export function Autofocus() {
       target.current = hit ? Math.max(0.4, hit.distance) : SKY;
     }
     const rate = target.current < focus.distance ? 7 : 3.5;
-    focus.distance = MathUtils.lerp(focus.distance, target.current, 1 - Math.exp(-rate * Math.min(dt, 0.1)));
+    focus.distance = MathUtils.lerp(focus.distance, target.current, 1 - Math.exp(-rate * Math.min(Math.max(dt, 0), 0.1)));
   });
   return null;
 }

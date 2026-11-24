@@ -24,6 +24,7 @@ class Engine {
   private lastStep = -1;
   private roof: GainNode | null = null;
   private outdoorFilter: BiquadFilterNode | null = null;
+  private bed: GainNode | null = null;          // the ambience bus (rain, insects), ducked near the portal
 
   get running() { return this.ctx?.state === 'running'; }
 
@@ -33,6 +34,7 @@ class Engine {
       this.ctx = new AudioContext();
       this.master = this.ctx.createGain();
       this.master.connect(this.ctx.destination);
+      this.bed = this.ctx.createGain(); this.bed.connect(this.master);
       void this.loadSteps();
     }
     this.master!.gain.value = volume;
@@ -108,7 +110,7 @@ class Engine {
   private startAmbience(kind: Exclude<Ambience, null>) {
     if (kind === 'tropical-rain') { this.startRain(); return; }
     if (kind !== 'tropical-day') return;
-    const ctx = this.ctx!, out = ctx.createGain(); out.gain.value = 0; out.connect(this.master!);
+    const ctx = this.ctx!, out = ctx.createGain(); out.gain.value = 0; out.connect(this.bed!);
     out.gain.setTargetAtTime(1, ctx.currentTime, 1.5);              // fade in
     const nodes: AudioScheduledSourceNode[] = [];
 
@@ -157,7 +159,7 @@ class Engine {
    *  rain is muffled, as heard through walls, and a soft, steady patter on the corrugated iron fades in — a gentle
    *  band of noise with slow swells, never a pulsing buzz. */
   private startRain() {
-    const ctx = this.ctx!, out = ctx.createGain(); out.gain.value = 0; out.connect(this.master!);
+    const ctx = this.ctx!, out = ctx.createGain(); out.gain.value = 0; out.connect(this.bed!);
     out.gain.setTargetAtTime(1, ctx.currentTime, 1.5);
     const nodes: AudioScheduledSourceNode[] = [];
     const outdoor = ctx.createBiquadFilter(); outdoor.type = 'lowpass'; outdoor.frequency.value = 9000; outdoor.connect(out);
@@ -205,106 +207,141 @@ class Engine {
   }
 
   /** the demonic portal, all generated live and placed in the stereo field where the portal is. `level` 0…1 by
-   *  proximity, `pan` -1…1 (left…right of the view). Layers, all through a dark, cavernous echo:
-   *  - a sub-bass drone: detuned low saws under a slowly breathing filter
-   *  - a growling voice: a low saw through two vocal formant filters that drift between vowels, with a gravelly
-   *    28 Hz rattle and a slow, uneven breath
-   *  - whispers: short bursts of hissing, band-passed noise in phrases, scattered left and right
-   *  - every 8–16 s a groan: a distorted voice that slides down in pitch, with a rumble beneath it */
-  private portal: { bus: GainNode; pan: StereoPannerNode; level: number; timers: number[] } | null = null;
+   *  proximity, `pan` -1…1 (left…right of the view). Voiced mostly in the 100 Hz – 3 kHz range so it carries on
+   *  laptop and phone speakers (which play almost nothing below ~120 Hz), all through a dark, cavernous echo:
+   *  - a dissonant drone: a low chord with a tritone in it, saws under a slowly breathing filter, plus sub-bass
+   *  - a growling voice: a distorted low saw through two vocal formants that drift between vowels, with a
+   *    gravelly rattle and an uneven breath
+   *  - a chant: a deep detuned "aah" that swells and fades
+   *  - whispers: bursts of hissing noise in phrases, scattered left and right
+   *  - groans every 5–10 s (distorted, sliding down in pitch, with a rumble), and a roar the first time the
+   *    visitor comes near
+   *  The rain and insects duck while the portal is loud. */
+  private portal: { bus: GainNode; pan: StereoPannerNode; level: number; timers: number[]; roared: boolean; roar: () => void } | null = null;
   setPortal(level: number, pan = 0) {
     const ctx = this.ctx;
     if (!ctx || !this.running) return;
     if (!this.portal && level > 0) this.portal = this.buildPortal(ctx);
     const p = this.portal; if (!p) return;
     p.level = level;
-    p.bus.gain.setTargetAtTime(Math.pow(level, 1.6) * 0.55, ctx.currentTime, 0.3);
-    p.pan.pan.setTargetAtTime(Math.max(-0.85, Math.min(0.85, pan)), ctx.currentTime, 0.15);
+    const t = ctx.currentTime;
+    p.bus.gain.setTargetAtTime(Math.pow(level, 1.3) * 1.1, t, 0.3);
+    p.pan.pan.setTargetAtTime(Math.max(-0.8, Math.min(0.8, pan)), t, 0.15);
+    this.bed?.gain.setTargetAtTime(1 - 0.55 * level, t, 0.5);
+    if (level > 0.55 && !p.roared) { p.roared = true; p.roar(); }
+    if (level < 0.2) p.roared = false;                     // walk away and back: it roars again
+  }
+
+  private distortion(ctx: AudioContext, drive: number) {
+    const w = ctx.createWaveShaper();
+    w.curve = Float32Array.from({ length: 2048 }, (_, i) => Math.tanh((i / 1023.5 - 1) * drive));
+    w.oversample = '2x';
+    return w;
   }
 
   private buildPortal(ctx: AudioContext) {
     const bus = ctx.createGain(); bus.gain.value = 0;
     const pan = ctx.createStereoPanner();
     // a cavernous echo: a feedback delay, darkened each time round
-    const dry = ctx.createGain(), wet = ctx.createGain(); wet.gain.value = 0.45;
-    const delay = ctx.createDelay(1); delay.delayTime.value = 0.27;
-    const fb = ctx.createGain(); fb.gain.value = 0.5;
-    const dark = ctx.createBiquadFilter(); dark.type = 'lowpass'; dark.frequency.value = 1400;
+    const dry = ctx.createGain(), wet = ctx.createGain(); wet.gain.value = 0.5;
+    const delay = ctx.createDelay(1); delay.delayTime.value = 0.29;
+    const fb = ctx.createGain(); fb.gain.value = 0.48;
+    const dark = ctx.createBiquadFilter(); dark.type = 'lowpass'; dark.frequency.value = 1800;
     dry.connect(delay); delay.connect(dark).connect(fb).connect(delay); dark.connect(wet);
-    dry.connect(bus); wet.connect(bus); bus.connect(pan).connect(this.master!);
+    // a gentle limiter so the layers can be loud without clipping
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 6; comp.attack.value = 0.01; comp.release.value = 0.3;
+    dry.connect(comp); wet.connect(comp); comp.connect(bus); bus.connect(pan).connect(this.master!);
 
-    // sub-bass drone
-    const sub = ctx.createBiquadFilter(); sub.type = 'lowpass'; sub.frequency.value = 220; sub.Q.value = 7;
-    const subGain = ctx.createGain(); subGain.gain.value = 0.55;
-    for (const [f, type] of [[36.7, 'sawtooth'], [37.15, 'sawtooth'], [55.0, 'triangle'], [73.6, 'sine']] as [number, OscillatorType][]) {
-      const o = ctx.createOscillator(); o.type = type; o.frequency.value = f; o.connect(sub); o.start();
+    // dissonant drone: D2, G#2 (the tritone), D3, a beating A2 pair; plus sub-bass for big speakers
+    const droneF = ctx.createBiquadFilter(); droneF.type = 'lowpass'; droneF.frequency.value = 700; droneF.Q.value = 4;
+    this.lfo(0.09, 350, droneF.frequency);
+    const drone = ctx.createGain(); drone.gain.value = 0.32;
+    for (const [f, type] of [[73.4, 'sawtooth'], [103.8, 'sawtooth'], [146.8, 'sawtooth'], [110.0, 'sawtooth'], [110.7, 'sawtooth'], [36.7, 'sine']] as [number, OscillatorType][]) {
+      const o = ctx.createOscillator(); o.type = type; o.frequency.value = f; o.connect(droneF); o.start();
     }
-    this.lfo(0.11, 110, sub.frequency);
-    sub.connect(subGain).connect(dry);
+    droneF.connect(drone).connect(dry);
+    this.lfo(0.13, 0.08, drone.gain);
 
-    // growling voice: saw → formants (drifting vowels) → rattle → breath
-    const voice = ctx.createOscillator(); voice.type = 'sawtooth'; voice.frequency.value = 61;
-    this.lfo(0.37, 2.5, voice.frequency);
-    const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 420; f1.Q.value = 9;
-    const f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 900; f2.Q.value = 11;
-    this.lfo(0.07, 140, f1.frequency); this.lfo(0.093, 320, f2.frequency);
+    // growling voice: saw → distortion (harmonics that small speakers can play) → formants → rattle → breath
+    const voice = ctx.createOscillator(); voice.type = 'sawtooth'; voice.frequency.value = 82;
+    this.lfo(0.37, 3, voice.frequency);
+    const vPre = ctx.createGain(); vPre.gain.value = 0.8;
+    const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 480; f1.Q.value = 6;
+    const f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 1050; f2.Q.value = 8;
+    this.lfo(0.07, 160, f1.frequency); this.lfo(0.093, 330, f2.frequency);
     const rattle = ctx.createGain(); rattle.gain.value = 0.6;
-    this.lfo(28, 0.4, rattle.gain);                                        // gravel in the throat
-    const breath = ctx.createGain(); breath.gain.value = 0.5;
-    this.lfo(0.17, 0.32, breath.gain); this.lfo(0.061, 0.18, breath.gain);  // slow, uneven breathing
-    const vMix = ctx.createGain(); vMix.gain.value = 1.4;
-    voice.connect(f1).connect(vMix); voice.connect(f2).connect(vMix);
+    this.lfo(26, 0.4, rattle.gain);
+    const breath = ctx.createGain(); breath.gain.value = 0.55;
+    this.lfo(0.17, 0.35, breath.gain); this.lfo(0.061, 0.2, breath.gain);
+    const vMix = ctx.createGain(); vMix.gain.value = 2.2;
+    const vDist = this.distortion(ctx, 3);
+    voice.connect(vPre).connect(vDist);
+    vDist.connect(f1).connect(vMix); vDist.connect(f2).connect(vMix);
     vMix.connect(rattle).connect(breath).connect(dry);
     voice.start();
 
-    const p = { bus, pan, level: 0, timers: [] as number[] };
+    // chant: a deep, detuned "aah" (formants ~700 / 1150 Hz) that swells in and out
+    const chant = ctx.createGain(); chant.gain.value = 0.12;
+    this.lfo(0.045, 0.11, chant.gain);
+    const cf1 = ctx.createBiquadFilter(); cf1.type = 'bandpass'; cf1.frequency.value = 700; cf1.Q.value = 7;
+    const cf2 = ctx.createBiquadFilter(); cf2.type = 'bandpass'; cf2.frequency.value = 1150; cf2.Q.value = 9;
+    for (const f of [110, 110.9, 109.2, 164.8]) {
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; this.lfo(4.8 + Math.random(), 0.6, o.frequency);
+      o.connect(cf1); o.connect(cf2); o.start();
+    }
+    const cMix = ctx.createGain(); cMix.gain.value = 3;
+    cf1.connect(cMix); cf2.connect(cMix); cMix.connect(chant).connect(dry);
+
+    const p = { bus, pan, level: 0, timers: [] as number[], roared: false, roar: () => {} };
+
     // whispers, in phrases of 4–9 syllables
     const whisper = () => {
-      const next = 1.5 + Math.random() * 4;
-      p.timers[0] = window.setTimeout(whisper, next * 1000);
+      p.timers[0] = window.setTimeout(whisper, (1.2 + Math.random() * 3) * 1000);
       if (!this.running || p.level < 0.05) return;
       const n = 4 + Math.floor(Math.random() * 6);
       let t = ctx.currentTime + 0.05;
       for (let i = 0; i < n; i++) {
         const dur = 0.08 + Math.random() * 0.22;
         const src = ctx.createBufferSource(); src.buffer = this.noiseBuffer(dur + 0.1);
-        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 4 + Math.random() * 6;
-        bp.frequency.setValueAtTime(1800 + Math.random() * 2600, t); bp.frequency.linearRampToValueAtTime(1500 + Math.random() * 2000, t + dur);
+        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3 + Math.random() * 5;
+        bp.frequency.setValueAtTime(1600 + Math.random() * 2400, t); bp.frequency.linearRampToValueAtTime(1300 + Math.random() * 1800, t + dur);
         const g = ctx.createGain(); g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(0.09 + Math.random() * 0.08, t + dur * 0.3); g.gain.linearRampToValueAtTime(0, t + dur);
+        g.gain.linearRampToValueAtTime(0.35 + Math.random() * 0.25, t + dur * 0.3); g.gain.linearRampToValueAtTime(0, t + dur);
         const sp = ctx.createStereoPanner(); sp.pan.value = Math.random() * 1.6 - 0.8;
         src.connect(bp).connect(g).connect(sp).connect(dry);
         src.start(t); src.stop(t + dur + 0.05);
         t += dur + 0.03 + Math.random() * 0.12;
       }
     };
-    // groans: a distorted voice sliding down, with a rumble
-    const shaper = ctx.createWaveShaper();
-    shaper.curve = Float32Array.from({ length: 1024 }, (_, i) => { const x = i / 511.5 - 1; return Math.tanh(x * 4); });
-    const groan = () => {
-      p.timers[1] = window.setTimeout(groan, (8 + Math.random() * 8) * 1000);
-      if (!this.running || p.level < 0.08) return;
-      const t = ctx.currentTime + 0.05, dur = 2.2 + Math.random() * 1.6, f0 = 70 + Math.random() * 25;
+
+    // a groan (or, louder and longer, a roar): a distorted voice sliding down, with a rumble beneath
+    const groan = (loud: number, dur: number) => {
+      const t = ctx.currentTime + 0.05, f0 = 95 + Math.random() * 35;
       const o = ctx.createOscillator(); o.type = 'sawtooth';
-      o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 0.55, t + dur);
+      o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 0.5, t + dur);
       const o2 = ctx.createOscillator(); o2.type = 'square';
-      o2.frequency.setValueAtTime(f0 * 0.5 * 1.01, t); o2.frequency.exponentialRampToValueAtTime(f0 * 0.27, t + dur);
-      const fm = ctx.createBiquadFilter(); fm.type = 'bandpass'; fm.Q.value = 5;
-      fm.frequency.setValueAtTime(650, t); fm.frequency.linearRampToValueAtTime(380, t + dur);
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+      o2.frequency.setValueAtTime(f0 * 0.503, t); o2.frequency.exponentialRampToValueAtTime(f0 * 0.25, t + dur);
+      const fm = ctx.createBiquadFilter(); fm.type = 'bandpass'; fm.Q.value = 3;
+      fm.frequency.setValueAtTime(800, t); fm.frequency.linearRampToValueAtTime(420, t + dur);
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
       const g = ctx.createGain(); g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.5, t + 0.45); g.gain.setValueAtTime(0.5, t + dur * 0.6); g.gain.linearRampToValueAtTime(0, t + dur);
-      const pre = ctx.createGain(); pre.gain.value = 0.7;
+      g.gain.linearRampToValueAtTime(loud, t + 0.35); g.gain.setValueAtTime(loud, t + dur * 0.6); g.gain.linearRampToValueAtTime(0, t + dur);
+      const pre = ctx.createGain(); pre.gain.value = 0.9;
       o.connect(pre); o2.connect(pre);
-      pre.connect(shaper).connect(fm).connect(lp).connect(g).connect(dry);
+      pre.connect(this.distortion(ctx, 5)).connect(fm).connect(lp).connect(g).connect(dry);
       const rum = ctx.createBufferSource(); rum.buffer = this.noiseBuffer(dur + 0.2, true);
-      const rlp = ctx.createBiquadFilter(); rlp.type = 'lowpass'; rlp.frequency.value = 120;
-      const rg = ctx.createGain(); rg.gain.setValueAtTime(0, t); rg.gain.linearRampToValueAtTime(0.9, t + 0.6); rg.gain.linearRampToValueAtTime(0, t + dur);
+      const rlp = ctx.createBiquadFilter(); rlp.type = 'lowpass'; rlp.frequency.value = 160;
+      const rg = ctx.createGain(); rg.gain.setValueAtTime(0, t); rg.gain.linearRampToValueAtTime(loud * 1.6, t + 0.5); rg.gain.linearRampToValueAtTime(0, t + dur);
       rum.connect(rlp).connect(rg).connect(dry);
       for (const n of [o, o2, rum]) { n.start(t); n.stop(t + dur + 0.1); }
     };
-    p.timers[0] = window.setTimeout(whisper, 2000);
-    p.timers[1] = window.setTimeout(groan, 4000);
+    const groans = () => {
+      p.timers[1] = window.setTimeout(groans, (5 + Math.random() * 5) * 1000);
+      if (this.running && p.level >= 0.08) groan(0.6, 2 + Math.random() * 1.5);
+    };
+    p.roar = () => groan(1.0, 3.8);
+    p.timers[0] = window.setTimeout(whisper, 1500);
+    p.timers[1] = window.setTimeout(groans, 3000);
     return p;
   }
 }

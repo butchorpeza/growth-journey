@@ -28,7 +28,7 @@ export function Footsteps() {
 
   useFrame((_, rawDt) => {
     if (!audio.running) return;
-    const dt = Math.min(rawDt, 0.1), s = st.current, g = playerState.grounded;
+    const dt = Math.min(Math.max(rawDt, 0), 0.1), s = st.current, g = playerState.grounded;
     const airborne = s.air;
     s.air = g ? 0 : s.air + dt;
     if (g && !s.wasGrounded && airborne > 0.25) { audio.footstep(surface(), 1); s.dist = 0; }   // landing (not stair hops)

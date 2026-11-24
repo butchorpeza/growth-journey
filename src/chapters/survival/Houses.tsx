@@ -10,14 +10,14 @@ import { GROUPS } from '../../physics/CollisionLayers';
 import { applyWeather } from '../../rendering/weather';
 import { SURVIVAL_BASE, type SurvivalLayout } from './layout';
 
-interface Placement { model: 'shop' | 'iron' | 'wooden'; at: [number, number]; yaw: number; scale: number }
+interface Placement { model: 'shop' | 'iron' | 'wooden'; at: [number, number]; yaw: number; scale: number; sink?: number }
 
 export const HOUSE_PLACEMENTS: Placement[] = [
   // sizes chosen to read as real village houses (≈ 8 × 10 m, one to two storeys), clear of house A's yard, the
   // fences, the path and the rocks (checked against the layout colliders)
   { model: 'shop', at: [16.0, 13.0], yaw: Math.PI / 2, scale: 0.38 },     // replaces house C (sign side faces away from the path)
-  { model: 'iron', at: [-14.6, 12.4], yaw: Math.PI / 2, scale: 0.5 },     // replaces house B
-  { model: 'wooden', at: [9.0, 40.0], yaw: Math.PI / 2, scale: 0.4 },     // by the road, facing it
+  { model: 'iron', at: [-14.6, 12.4], yaw: Math.PI / 2, scale: 0.5, sink: 0.32 },     // replaces house B (its steps and posts reach 0.24 m below the walls)
+  { model: 'wooden', at: [9.0, 40.0], yaw: Math.PI / 2, scale: 0.4, sink: 0.28 },     // by the road, facing it (posts 0.19 m below the walls)
 ];
 
 export interface PlacedHouse { object: Group; box: SurvivalLayout['colliders'][number] }
@@ -48,9 +48,11 @@ export function placeModel(src: Object3D, pl: { at: [number, number]; yaw: numbe
     m.castShadow = true; m.receiveShadow = true;
     (Array.isArray(m.material) ? m.material : [m.material]).forEach((mm) => applyWeather(mm));
   });
-  let local = new Box3().setFromObject(inner);
+  // precise bounds (every vertex): the fast box of quantized meshes is the transformed box of the quantized box,
+  // which can sit a metre below the real geometry and leave a house floating
+  let local = new Box3().setFromObject(inner, true);
   let raw = local.getSize(new Vector3());
-  if (pl.length && raw.x > raw.z) { turn.rotation.y = Math.PI / 2; turn.updateMatrixWorld(true); local = new Box3().setFromObject(turn); raw = local.getSize(new Vector3()); }
+  if (pl.length && raw.x > raw.z) { turn.rotation.y = Math.PI / 2; turn.updateMatrixWorld(true); local = new Box3().setFromObject(turn, true); raw = local.getSize(new Vector3()); }
   const scale = pl.scale ?? (pl.length ? pl.length / Math.max(raw.x, raw.z) : 1);
   const size = raw.clone().multiplyScalar(scale), centre = local.getCenter(new Vector3()).multiplyScalar(scale);
   turn.scale.setScalar(scale);

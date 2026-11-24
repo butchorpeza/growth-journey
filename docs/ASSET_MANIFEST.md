@@ -40,7 +40,7 @@ needs a credit (see `CREDITS.md`, to be generated).
 | 01 | Hero weathered house ("Old House Wooden Enterable Rusty") | Sketchfab | glTF / FBX | CC-BY 4.0 | 24k faces, 2K, `COL_*` collision | Pending |
 | 01 | Shacks (Old Shack 1, Shack 2) | Blendkit | .blend | CC0 / Blendkit RF | Export GLB, 2K | Pending |
 | 01 | Clothes line, wooden cart, bicycle, corrugated panels | Sketchfab | glTF | CC-BY | Decimate where > 50k faces | Pending |
-| 01 | Tricycle (kotris666, 142k), rusty motorbike (cansuaydin, 82k), jeepney (maclinmacalindong, 74k) | Sketchfab | glTF / GLB | CC-BY 4.0 | Full detail, 1K WebP, meshopt: 1.0 / 1.9 / 0.9 MB | Acquired 2026-11-24 |
+| 01 | Rusty motorbike (cansuaydin, 82k) | Sketchfab | GLB | CC-BY 4.0 | Full detail, 1K WebP, meshopt: 1.9 MB | Acquired 2026-11-24 (a tricycle and a jeepney were tried and dropped: too low-poly up close) |
 | 01 | Stone portal frame at the end of the road (soidev, 2.9k) | Sketchfab | GLB | CC-BY 4.0 | 1K WebP, 0.4 MB | Acquired 2026-11-24 |
 | 01 | Palms, banana / tropical plants | Sketchfab | glTF | CC-BY | Alpha-tested cards, instancing, impostors far away | Pending |
 | 01 | Trees, ferns, shrubs, rocks, distant hills | Poly Haven | glTF | CC0 | island_tree needs impostors (1.8–3.7M polys) | Pending |

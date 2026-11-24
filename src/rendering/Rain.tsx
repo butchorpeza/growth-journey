@@ -76,7 +76,7 @@ export function Rain({ intensity, quality, color = '#e9eef0' }: { intensity: num
 
   useFrame((_, dt) => {
     const u = (mesh.material as ShaderMaterial).uniforms;
-    u.uTime.value += Math.min(dt, 0.1);
+    u.uTime.value += Math.min(Math.max(dt, 0), 0.1);
     u.uCam.value.copy(camera.position);
   });
   return <primitive object={mesh} />;
