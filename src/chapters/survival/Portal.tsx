@@ -16,6 +16,7 @@ import { playerState } from '../../player/playerState';
 import { placeModel, terrainHeight, type PlacedHouse } from './Houses';
 import { SURVIVAL_BASE } from './layout';
 import { PORTAL } from './path';
+import { director } from '../../game/director';
 
 // the frame model is 321 × 383 units with a doorway 160 wide from 76 to 340 up (measured from its geometry);
 // at this scale: a 5.2 × 6.2 m gate, a 2.6 × 4.3 m doorway standing on 1.2 m of steps
@@ -38,6 +39,7 @@ export function usePortalFrame(terrain: MeshT | null): PlacedHouse {
 
 const VORTEX_FRAG = /* glsl */ `
 uniform float uTime;
+uniform float uBoost;
 varying vec2 vUv;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -60,7 +62,7 @@ void main() {
   float rim = smoothstep(0.72, 0.98, edge) * (0.7 + 0.6 * n);
   c = mix(c, ember, rim);
   c += crimson * 0.35 * smoothstep(0.5, 0.0, r) * bands;          // veins of red deep inside
-  gl_FragColor = vec4(c, 1.0);
+  gl_FragColor = vec4(c * uBoost, 1.0);
 }`;
 
 const EMBERS = 90;
@@ -75,7 +77,7 @@ export function Portal({ frame }: { frame: PlacedHouse }) {
   useEffect(() => () => audio.setPortal(0), []);           // silence it when the chapter goes away
 
   const vortexMat = useMemo(() => new ShaderMaterial({
-    uniforms: { uTime: { value: 0 } }, side: DoubleSide, toneMapped: false,
+    uniforms: { uTime: { value: 0 }, uBoost: { value: 1 } }, side: DoubleSide, toneMapped: false,
     vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
     fragmentShader: VORTEX_FRAG,
   }), []);
@@ -99,7 +101,10 @@ export function Portal({ frame }: { frame: PlacedHouse }) {
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
     vortexMat.uniforms.uTime.value = t; emberMat.uniforms.uTime.value = t;
-    if (light.current) light.current.intensity = 60 * (0.82 + 0.12 * Math.sin(t * 2.3) + 0.06 * Math.sin(t * 7.1 + 1.3));
+    // the story's pull on it (Cinematics.tsx): brighter and more insistent beat by beat
+    const pull = director.fx.portal;
+    vortexMat.uniforms.uBoost.value = 1 + 0.55 * pull;
+    if (light.current) light.current.intensity = 60 * (1 + 0.9 * pull) * (0.82 + 0.12 * Math.sin(t * (2.3 + 2 * pull)) + 0.06 * Math.sin(t * 7.1 + 1.3));
     if (vortex.current) vortex.current.scale.setScalar(1 + 0.01 * Math.sin(t * 1.7));
     // the sound: louder as you come closer, and heard from where the portal is in the view
     const d = Math.hypot(playerState.position.x - at[0], playerState.position.z - at[1]);

@@ -15,7 +15,7 @@
    Every piece is UV-mapped in metres (no stretching) with a random texture offset (no visible repeat), small random
    variations in size and angle, and merged per material: about a dozen draw calls in all. */
 import {
-  BoxGeometry, BufferGeometry, Euler, Group, Matrix4, Mesh, MeshStandardMaterial, Quaternion, RepeatWrapping, SRGBColorSpace, Vector3, type MeshStandardMaterialParameters,
+  BoxGeometry, BufferGeometry, Euler, Group, Matrix4, Mesh, MeshStandardMaterial, Quaternion, RepeatWrapping, SRGBColorSpace, Vector2, Vector3, type MeshStandardMaterialParameters,
   type Material, type Object3D, type Texture,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -47,22 +47,29 @@ export function createHouseMaterials(textures: Texture[], ...roots: (Object3D | 
   const timberTinted = (name: string, tint: number) => { const m = set('timber', { color: tint, roughness: 1 }); m.name = name; return m; };
   const door = timberTinted('houseA_door', 0x7d95a3), shutter = timberTinted('houseA_shutter', 0x8f7d69);
   return {
-    thatch: set('thatch', { color: 0xd8cfc0 }),           // sun-bleached grey-gold nipa
+    // sun-bleached grey-gold nipa; its fine strand relief halved, or it glittered pixel by pixel under the porch bulb
+    thatch: set('thatch', { color: 0xd8cfc0, normalScale: new Vector2(0.5, 0.5) }),
     bamboo: set('bamboo'),
     timber: set('timber', { color: 0xb8a896 }),
     block: set('block'),
     concrete: set('concrete', { color: 0xc9c4bc }),
     iron: set('iron', { metalness: 0.35 }),
     paint, door, shutter, plaster,
-    aged: agedPlaster(set('aged', { color: 0xc9d0c4 })),
+    aged: agedPlaster(set('aged', { color: 0xa6ad9f })),
     metal: set('iron', { metalness: 0.6, color: 0x55524e }),
   };
 }
 
 /** the front's lower course: aged, light grey-green cement plaster. On top of the scanned cracks and stains, a band
  *  of dirt and rain splash darkens and browns it towards the ground (up to ~0.55 m, broken up by noise, the way
- *  splashback really marks a wall), and the bottom edge is a little rougher. */
+ *  splashback really marks a wall), and the bottom edge is a little rougher.
+ *  The scan ("cracked concrete wall") is a bright, cream, peeling plaster with panel-sized light and dark patches:
+ *  taken as it is, it read as a blotchy camouflage under the porch light. So its patches are pulled halfway towards
+ *  their average and its cream taken out (the cracks, pits and stains stay), it repeats every ~0.9 m so the cracks
+ *  are at a believable scale, and the peeling edges are shallower. */
 function agedPlaster(m: MeshStandardMaterial) {
+  for (const t of [m.map, m.normalMap, m.roughnessMap]) t?.repeat.set(1.55, 1.55);   // these textures are only used here
+  m.normalScale.set(0.55, 0.55);
   m.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vAgedWorld;')
@@ -76,13 +83,22 @@ float agedN(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * 
   return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }`)
       .replace('#include <map_fragment>', `#include <map_fragment>
   {
+    // tame the scan: no cream, and its big light/dark patches pulled halfway to the average (detail kept)
+    float lum = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+    float tintLum = max(dot(diffuse, vec3(0.2126, 0.7152, 0.0722)), 1e-3);
+    vec3 grey = lum * diffuse / tintLum;                               // same brightness in the grey-green tint, no cream
+    diffuseColor.rgb = mix(grey, diffuseColor.rgb, 0.35);
+    float avg = 0.42 * tintLum;                                        // the scan's mean (linear) under this tint
+    diffuseColor.rgb *= mix(1.0, avg / max(lum, 1e-3), 0.5);
+  }
+  {
     float along = vAgedWorld.x + vAgedWorld.z;
     float edge = 0.32 + 0.18 * agedN(vec2(along * 2.3, 0.0)) + 0.08 * agedN(vec2(along * 9.0, 3.0));   // ragged top of the splash band
     float dirt = smoothstep(edge, 0.12, vAgedWorld.y) * (0.65 + 0.35 * agedN(vAgedWorld.xy * 6.0 + vAgedWorld.zy * 6.0));
-    diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.62, 0.56, 0.47), dirt);
+    diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.5, 0.44, 0.35), dirt);
   }`);
   };
-  m.customProgramCacheKey = () => 'houseA_aged_v1';
+  m.customProgramCacheKey = () => 'houseA_aged_v3';
   return m;
 }
 

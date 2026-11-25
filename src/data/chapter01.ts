@@ -1,10 +1,12 @@
-/* CONTENT for Chapter 01's discoveries: what the information panel shows when the visitor presses E at a white
-   diamond. Edit freely; the interaction code only reads this. Photographs live in photos.ts.
+/* CONTENT for Chapter 01, "The place where everything began": what the information panel shows when the visitor
+   presses E at a white diamond. This is Butch's own story, in his own words: edit it here, and only here (the voice
+   lines in narration.ts are read from these same paragraphs). Photographs live in photos.ts.
+   Source of truth: the biography Butch gave. Nothing here is invented: no memories, events or achievements beyond it.
 
    Fields: title · intro (one line, shown first) · body (paragraphs) · date (optional) · image (optional, a path, or
    "render:<view>" for a view rendered from the scene) · gallery (optional, a list of photos) · demo (optional, a small
    animated explanation) · action (optional, a button that does something, e.g. entering the next chapter). */
-import { COLLAGE, K9, type Photo } from './photos';
+import { CAT, COLLAGE, K9, type Photo } from './photos';
 
 export interface Discovery {
   id: string;
@@ -17,18 +19,15 @@ export interface Discovery {
   imageCaption?: string;
   imagePlaceholder?: boolean;
   gallery?: Photo[];
-  demo?: 'sungka';
+  demo?: 'sungka';                 // (the sungka demonstration: no longer used, Butch never played it)
   action?: { label: string; kind: 'enter-next-chapter' };
 }
 
 export const DISCOVERIES: Record<string, Discovery> = {
   'survival-lamp': {
-    id: 'survival-lamp', kicker: 'The beginning', title: 'A Light That Never Went Out',
-    intro: 'The oil lamp represents a time when life was not always easy and the road ahead was not always clear.',
+    id: 'survival-lamp', kicker: 'My grandparents', title: 'The People Who Raised Me', intro: '',
     body: [
-      'Sometimes, progress begins with very little. You learn to make use of what you have, adapt to what surrounds you, and keep moving even when the possibilities seem limited.',
-      'For me, the light represents resilience, resourcefulness, and the determination to build something better from humble beginnings.',
-      'It reminds me that even a small light can make a difference in the darkest surroundings.',
+      'When I think about where I came from, I think about my grandparents. They were the ones who raised me and stood by me throughout my childhood. They became my family, my support system, and an important part of the person I am today.',
     ],
   },
   'survival-photograph': {
@@ -41,39 +40,38 @@ export const DISCOVERIES: Record<string, Discovery> = {
     gallery: COLLAGE,
   },
   'survival-k9': {
-    id: 'survival-k9', kicker: `Born ${K9.birthYear}`, title: `${K9.name}: A Loyal Companion`,
+    id: 'survival-k9', kicker: `Born ${K9.birthYear}`, title: `${K9.name}, A Loyal Companion`,
     intro: 'Some companions become part of our journey without needing words.',
     body: [`${K9.name} has been part of my life since ${K9.birthYear}. This little corner is dedicated to a companion whose presence deserves a place in my story.`],
     date: String(K9.birthYear),
     image: K9.image, imageCaption: K9.caption, imagePlaceholder: K9.placeholder,
   },
   'survival-cat': {
-    id: 'survival-cat', kicker: 'Home', title: 'Quiet Companionship',
-    intro: 'Not every meaningful part of life is defined by major achievements.',
+    id: 'survival-cat', kicker: 'A little companion', title: 'Minggay', intro: '',
     body: [
-      'Sometimes, it is the small and quiet moments that make an ordinary day memorable.',
-      'This interaction represents the simple companionship and everyday moments that make a place feel like home.',
+      "This is Minggay. She was part of my everyday life for about a year. I don't know where she is now, but having her around gave me little moments that became part of my story. I still hope she's somewhere safe.",
     ],
+    ...(CAT.image ? { image: CAT.image, imageCaption: CAT.caption || undefined } : {}),
   },
-  'survival-sungka': {
-    id: 'survival-sungka', kicker: 'Filipino culture', title: 'A Game of Patience and Strategy',
-    intro: 'Sungka is a traditional Filipino board game played using small shells, stones, or seeds.',
+  'survival-games': {
+    id: 'survival-games', kicker: 'What I loved as a kid', title: 'Games and Drawings', intro: '',
     body: [
-      'Beyond the game itself, it represents the simple moments of gathering, thinking ahead, and spending time together.',
-      'It is a small reminder of the culture and everyday traditions that are part of Filipino life.',
-      'How it is played: each player scoops all the shells from one of their small holes and sows them one by one into the following holes, around the board, dropping one into their own store along the way.',
+      'As a kid, I loved playing video games and drawing. I spent a lot of my time with friends, exploring and making things.',
+      'Even back then, I dreamed of becoming a successful man someday, whatever that would take.',
     ],
-    image: 'render:sungka', imageCaption: 'The sungka board under the shelter.',
-    demo: 'sungka',
   },
   'survival-motorbike': {
-    id: 'survival-motorbike', kicker: 'Everyday life', title: 'The Road Forward',
-    intro: 'Transportation is more than simply getting from one place to another.',
+    id: 'survival-motorbike', kicker: "Our family's motorcycle", title: 'Keeping Things Moving', intro: '',
     body: [
-      'In rural communities, motorcycles are part of everyday life. They represent mobility, independence, and the ability to reach places that might otherwise feel far away.',
-      "This motorcycle is part of the environment's story of movement, opportunity, and the journey ahead.",
+      'This motorcycle was part of our family\'s everyday life. My parents used it to provide transportation for my grandfather, who needed it for his work. It might have seemed like an ordinary motorcycle, but it played a role in helping our family get by.',
     ],
-    image: 'render:motorbike', imageCaption: 'Parked by the sungka shelter.',
+  },
+  'survival-computer': {
+    id: 'survival-computer', kicker: "My grandfather's help", title: 'The First Opportunity', intro: '',
+    body: [
+      "One of the things I'll always be grateful for is how my grandfather helped me get a computer. He knew I wanted to do something with my skills, and that computer gave me an opportunity to explore freelancing. Whenever I encountered problems, he tried to help me find a way forward.",
+      'I started as a graphic designer. Little by little, I learned new things, explored different creative fields, and discovered what I was capable of. What started as a small opportunity eventually grew into a freelance career that has lasted nearly five years.',
+    ],
   },
   'survival-portal': {
     id: 'survival-portal', kicker: 'Chapter 01 → Chapter 02', title: 'Beyond the Beginning',

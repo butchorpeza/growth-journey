@@ -436,69 +436,157 @@ html.game-open, html.game-open body { overflow: hidden; }
 
 
 /* ------------------------------------------------------------------------------------------------- info panel
-   A discovery's panel: the game softly blurred behind, a dark panel with the picture side and the text side. */
-.info { --hand: 'Caveat Variable', 'Caveat', cursive; position: absolute; inset: 0; z-index: 15; pointer-events: auto; display: grid; place-items: center;
-  padding: 16px; background: rgb(0 0 0 / 0.38); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); animation: fade-in 0.3s ease both; }
-.info__panel { position: relative; width: min(1040px, 100%); max-height: min(88vh, 860px); overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
-  background: rgb(10 10 10 / 0.92); border: 1px solid rgb(255 255 255 / 0.16); border-radius: 18px; color: #f2efe9; box-shadow: 0 30px 80px rgb(0 0 0 / 0.5);
-  animation: info-rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-.info__panel--text { width: min(620px, 100%); grid-template-columns: 1fr; }
-@keyframes info-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-.info__x { position: absolute; top: 10px; right: 12px; z-index: 2; width: 38px; height: 38px; border: 0; border-radius: 50%; background: rgb(255 255 255 / 0.08);
-  color: #fff; font: 400 24px/1 var(--f); cursor: pointer; }
-.info__x:hover, .info__x:focus-visible { background: rgb(255 255 255 / 0.18); outline: none; }
-.info__media { padding: 22px; display: grid; gap: 14px; align-content: start; border-right: 1px solid rgb(255 255 255 / 0.08); }
-.info__figure { position: relative; margin: 0; border-radius: 10px; overflow: hidden; background: #1a1a1a; }
-.info__figure img { display: block; width: 100%; max-height: 52vh; object-fit: contain; background: #111; }
-.info__figure figcaption { padding: 8px 12px; font: 400 13px/1.4 var(--f); color: rgb(255 255 255 / 0.6); }
-.info__badge { position: absolute; top: 10px; left: 10px; padding: 4px 9px; border-radius: 999px; background: rgb(0 0 0 / 0.65); border: 1px solid rgb(255 255 255 / 0.35);
-  font: 500 10px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: #fff; }
-.info__text { padding: 34px 34px 28px; display: grid; gap: 12px; align-content: start; }
-.info__kicker { margin: 0; font: 500 11px/1 var(--mono); letter-spacing: 0.22em; text-transform: uppercase; color: #d9a86a; }
-.info__title { margin: 0; font: 700 clamp(34px, 4vw, 48px)/1 var(--hand); letter-spacing: 0; }
-.info__intro { margin: 4px 0 2px; font: 400 italic 18px/1.5 var(--f); color: #fff; }
-.info__body { margin: 0; font: 400 15.5px/1.7 var(--f); color: rgb(242 239 233 / 0.8); }
-.info__actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; align-items: center; }
-.info__primary { padding: 12px 20px; border: 0; border-radius: 999px; background: #e0a85c; color: #140d05; font: 600 15px/1 var(--f); cursor: pointer; }
-.info__primary:hover, .info__primary:focus-visible { background: #f0bb72; outline: none; }
-.info__continue { padding: 11px 18px; border: 1px solid rgb(255 255 255 / 0.3); border-radius: 999px; background: none; color: #fff; font: 500 15px/1 var(--f); cursor: pointer; }
-.info__continue:hover, .info__continue:focus-visible { border-color: #fff; outline: none; }
-.info__continue kbd { margin-left: 6px; }
-.gallery { display: grid; gap: 10px; }
+   A discovery's panel, in the pause menu's style: a black panel on the right in the handwritten face, black and
+   white, sliding in from the edge. Behind it the scene is only a little darkened (no blur); the camera turns to
+   the object and frames it (PlayerCamera), framed in the space to the left of the panel. */
+.info { --hand: 'Caveat Variable', 'Caveat', cursive; position: absolute; inset: 0; z-index: 15; pointer-events: auto; display: flex; justify-content: flex-end;
+  background: rgb(0 0 0 / 0.22); animation: fade-in 0.35s ease both; }
+.info__panel { position: relative; width: min(460px, 100%); height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 18px;
+  padding: clamp(28px, 6vh, 64px) clamp(24px, 3.4vw, 44px); background: rgb(0 0 0 / 0.86); border-left: 1px solid rgb(255 255 255 / 0.22);
+  color: #fff; font-family: var(--hand); animation: info-slide 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes info-slide { from { translate: 24px 0; opacity: 0; } to { translate: 0 0; opacity: 1; } }
+.info__x { position: absolute; top: 16px; right: 18px; width: 40px; height: 40px; border: 0; background: none; color: #fff;
+  font: 400 34px/1 var(--hand); cursor: pointer; opacity: 0.7; }
+.info__x:hover, .info__x:focus-visible { opacity: 1; outline: 1px dashed #fff; outline-offset: 2px; }
+.info__kicker { margin: 0; font: 600 22px/1 var(--hand); opacity: 0.6; }
+.info__title { margin: 0; padding-right: 36px; font: 700 clamp(44px, 5.4vw, 60px)/0.92 var(--hand); letter-spacing: 0; }
+.info__intro { margin: 0; font: 600 27px/1.2 var(--hand); }
+.info__body { margin: 0; font: 400 23px/1.3 var(--hand); color: rgb(255 255 255 / 0.82); }
+.info__media { display: grid; gap: 12px; }
+.info__figure { position: relative; margin: 0; overflow: hidden; border: 1px solid rgb(255 255 255 / 0.22); background: #0b0b0b; }
+.info__figure img { display: block; width: 100%; max-height: 26vh; object-fit: contain; }
+.info__figure figcaption { padding: 6px 10px; font: 500 20px/1.2 var(--hand); color: rgb(255 255 255 / 0.7); }
+.info__badge { position: absolute; top: 8px; left: 8px; padding: 2px 10px; border: 1px solid rgb(255 255 255 / 0.5); border-radius: 999px; background: rgb(0 0 0 / 0.7);
+  font: 600 17px/1.2 var(--hand); }
+.info__actions { display: grid; gap: 6px; justify-items: start; margin-top: auto; padding-top: 18px; border-top: 1px solid rgb(255 255 255 / 0.22); }
+.info__primary, .info__continue { padding: 2px 0; border: 0; background: none; color: #fff; font: 600 32px/1.2 var(--hand); cursor: pointer;
+  background-image: linear-gradient(#fff, #fff); background-size: 0 2px; background-repeat: no-repeat; background-position: 0 100%; transition: background-size 0.25s ease; }
+.info__primary:hover, .info__primary:focus-visible, .info__continue:hover, .info__continue:focus-visible { background-size: 100% 2px; outline: none; }
+.info__continue { opacity: 0.8; }
+.info__continue kbd { margin-left: 8px; padding: 0 7px; border: 1.5px solid #fff; border-radius: 6px; font: 600 20px/1.3 var(--hand); }
+.gallery { display: grid; gap: 8px; }
 .gallery__main img { aspect-ratio: 4 / 3; object-fit: contain; }
-.gallery__nav { position: absolute; top: 50%; translate: 0 -50%; width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgb(0 0 0 / 0.55); color: #fff;
-  font: 400 26px/1 var(--f); cursor: pointer; }
-.gallery__nav--prev { left: 10px; } .gallery__nav--next { right: 10px; }
-.gallery__nav:hover, .gallery__nav:focus-visible { background: rgb(0 0 0 / 0.8); outline: none; }
-.gallery__meta { display: flex; gap: 12px; align-items: baseline; font: 500 15px/1.3 var(--f); }
-.gallery__count { font: 500 11px/1 var(--mono); letter-spacing: 0.12em; color: rgb(255 255 255 / 0.55); }
-.gallery__date { color: #d9a86a; font-size: 13px; }
-.gallery__desc { margin: 0; font: 400 14px/1.5 var(--f); color: rgb(255 255 255 / 0.65); }
-.gallery__thumbs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
-.gallery__thumb { flex: 0 0 auto; width: 64px; height: 48px; padding: 0; border: 2px solid transparent; border-radius: 6px; overflow: hidden; background: #111; cursor: pointer; opacity: 0.6; }
+.gallery__nav { position: absolute; top: 50%; translate: 0 -50%; width: 38px; height: 38px; border: 1px solid rgb(255 255 255 / 0.5); border-radius: 50%; background: rgb(0 0 0 / 0.6);
+  color: #fff; font: 400 26px/1 var(--hand); cursor: pointer; }
+.gallery__nav--prev { left: 8px; } .gallery__nav--next { right: 8px; }
+.gallery__nav:hover, .gallery__nav:focus-visible { background: #000; border-color: #fff; outline: none; }
+.gallery__meta { display: flex; gap: 12px; align-items: baseline; font: 600 24px/1.2 var(--hand); }
+.gallery__count { opacity: 0.6; }
+.gallery__date { opacity: 0.6; }
+.gallery__desc { margin: 0; font: 400 21px/1.3 var(--hand); color: rgb(255 255 255 / 0.75); }
+.gallery__thumbs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.gallery__thumb { flex: 0 0 auto; width: 58px; height: 44px; padding: 0; border: 1.5px solid transparent; overflow: hidden; background: #111; cursor: pointer; opacity: 0.55; }
 .gallery__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.gallery__thumb.is-active, .gallery__thumb:hover { opacity: 1; border-color: #e0a85c; }
+.gallery__thumb.is-active, .gallery__thumb:hover { opacity: 1; border-color: #fff; }
 .sungka { display: grid; gap: 8px; }
-.sungka__board { display: flex; align-items: stretch; gap: 8px; padding: 12px; border-radius: 40px; background: linear-gradient(180deg, #6b4428, #4b2e19);
-  box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.12), inset 0 -3px 8px rgb(0 0 0 / 0.4); }
-.sungka__rows { flex: 1; display: grid; gap: 8px; }
-.sungka__row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.sungka__pit { position: relative; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 50% 40%, #2c1a0d, #3d2614 70%); box-shadow: inset 0 3px 6px rgb(0 0 0 / 0.6);
-  display: grid; place-items: center; transition: box-shadow 0.25s; }
-.sungka__store { width: 46px; aspect-ratio: auto; border-radius: 24px; }
-.sungka__pit.is-active { box-shadow: inset 0 3px 6px rgb(0 0 0 / 0.6), 0 0 0 2px #e0a85c; }
+.sungka__board { display: flex; align-items: stretch; gap: 6px; padding: 10px; border-radius: 34px; background: #111; border: 1px solid rgb(255 255 255 / 0.3); }
+.sungka__rows { flex: 1; display: grid; gap: 6px; }
+.sungka__row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.sungka__pit { position: relative; aspect-ratio: 1; border-radius: 50%; background: #000; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25);
+  display: grid; place-items: center; }
+.sungka__store { width: 40px; aspect-ratio: auto; border-radius: 20px; }
+.sungka__pit.is-active { box-shadow: inset 0 0 0 2px #fff; }
 .sungka__shells { display: flex; flex-wrap: wrap; justify-content: center; gap: 1px; width: 70%; }
-.sungka__shells i { width: 5px; height: 4px; border-radius: 50%; background: #eee4d2; }
-.sungka__n { position: absolute; bottom: -2px; right: 0; font: 500 9px/1 var(--mono); color: rgb(255 255 255 / 0.6); }
-.sungka__note { margin: 0; font: 400 13px/1.4 var(--f); color: rgb(255 255 255 / 0.6); }
+.sungka__shells i { width: 4px; height: 3px; border-radius: 50%; background: #eee; }
+.sungka__n { position: absolute; bottom: -3px; right: 0; font: 600 13px/1 var(--hand); opacity: 0.7; }
+.sungka__note { margin: 0; font: 400 19px/1.25 var(--hand); color: rgb(255 255 255 / 0.65); }
 @media (max-width: 760px) {
-  .info__panel { grid-template-columns: 1fr; max-height: 92vh; }
-  .info__media { border-right: 0; border-bottom: 1px solid rgb(255 255 255 / 0.08); padding: 16px; }
-  .info__text { padding: 22px 20px; }
-  .info__figure img { max-height: 36vh; }
+  .info { align-items: flex-end; }
+  .info__panel { width: 100%; height: auto; max-height: 62vh; border-left: 0; border-top: 1px solid rgb(255 255 255 / 0.22); padding: 22px 20px; }
+  @keyframes info-slide { from { translate: 0 24px; opacity: 0; } to { translate: 0 0; opacity: 1; } }
 }
 @media (prefers-reduced-motion: reduce) { .info, .info__panel { animation: none; } }
-.info--side { justify-items: end; padding: 24px clamp(16px, 4vw, 56px); backdrop-filter: none; -webkit-backdrop-filter: none;
-  background: linear-gradient(to left, rgb(0 0 0 / 0.62) 0%, rgb(0 0 0 / 0.35) 45%, transparent 75%); }
-.info--side .info__panel { width: min(470px, 100%); background: rgb(10 10 10 / 0.84); }
-@media (max-width: 760px) { .info--side { justify-items: center; align-items: end; background: linear-gradient(to top, rgb(0 0 0 / 0.6), transparent 70%); } }
+
+/* ------------------------------------------------------------------------------------------------- subtitles
+   The narrator's words (Subtitles.tsx): bottom centre, in the panels' handwritten face, white with a soft shadow on a
+   faint dark band, gold for the highlighted phrases; each word fades in as it is spoken. */
+.subs { position: absolute; left: 0; right: 0; bottom: clamp(56px, 11vh, 120px); z-index: 18; display: flex; justify-content: center; padding: 0 24px; pointer-events: none;
+  transition: opacity 1.2s ease, right 0.4s ease; }
+.subs--panel { right: min(460px, 100%); }
+.subs.is-ending { opacity: 0; transition-delay: 0.4s; }
+.subs__line { max-width: min(880px, 92%); margin: 0; padding: 10px 22px 12px; border-radius: 10px; text-align: center;
+  background: radial-gradient(ellipse at center, rgb(0 0 0 / 0.42), rgb(0 0 0 / 0) 72%);
+  font: 600 clamp(26px, 2.5vw, 36px)/1.25 'Caveat Variable', 'Caveat', cursive; letter-spacing: 0.01em;   /* the panels' handwritten face */
+  color: #fff; text-shadow: 0 2px 14px rgb(0 0 0 / 0.85), 0 0 2px rgb(0 0 0 / 0.9); animation: fade-in 0.35s ease both; }
+.subs__w { opacity: 0; transition: opacity 0.22s ease; white-space: pre; }
+.subs__w.is-on { opacity: 1; }
+.subs__w.is-gold { color: #f0bd6a; text-shadow: 0 2px 14px rgb(0 0 0 / 0.85), 0 0 18px rgb(240 170 80 / 0.35); }
+@media (max-width: 760px) { .subs--panel { right: 0; bottom: calc(62vh + 12px); } }
+@media (prefers-reduced-motion: reduce) { .subs__w { transition: none; } }
+
+/* skip a scripted moment (and the opening) */
+.cine-skip { position: absolute; right: clamp(16px, 3vw, 40px); bottom: clamp(16px, 4vh, 40px); z-index: 19; padding: 6px 2px; border: 0; background: none;
+  color: rgb(255 255 255 / 0.75); font: 600 24px/1.2 'Caveat Variable', 'Caveat', cursive; cursor: pointer; pointer-events: auto;
+  background-image: linear-gradient(#fff, #fff); background-size: 0 2px; background-repeat: no-repeat; background-position: 0 100%; transition: background-size 0.25s ease, color 0.2s; }
+.cine-skip:hover, .cine-skip:focus-visible { color: #fff; background-size: 100% 2px; outline: none; }
+.cine-skip kbd { margin-left: 8px; padding: 0 6px; border: 1.5px solid currentColor; border-radius: 6px; font: inherit; font-size: 17px; }
+
+/* the panel's voice control */
+.info__voice { justify-self: start; padding: 2px 0; border: 0; background: none; color: #fff; font: 600 24px/1.2 var(--hand); opacity: 0.75; cursor: pointer; }
+.info__voice:hover, .info__voice:focus-visible { opacity: 1; outline: none; text-decoration: underline; text-underline-offset: 4px; }
+
+/* the visitor's eyes (Eyes.tsx): eyelids, unfocused blur, fades to black and a red flash */
+.eyes { --open: 1; --blur: 0px; --black: 0; --flash: 0; position: absolute; inset: 0; z-index: 16; pointer-events: none; overflow: hidden; }
+.eyes__blur { position: absolute; inset: 0; display: none; }
+.eyes.is-blurred .eyes__blur { display: block; backdrop-filter: blur(var(--blur)) brightness(calc(0.55 + 0.45 * var(--open))); -webkit-backdrop-filter: blur(var(--blur)) brightness(calc(0.55 + 0.45 * var(--open))); }
+/* each lid is taller than half the screen with a curved, soft edge; open = 1 slides them clear */
+.eyes__lid { position: absolute; left: -15%; right: -15%; height: 62%; background: #000; will-change: transform; }
+.eyes__lid--top { top: 0; border-radius: 0 0 50% 50% / 0 0 34% 34%; box-shadow: 0 18px 40px 26px #000; transform: translateY(calc(-112% * var(--open))); }
+.eyes__lid--bottom { bottom: 0; border-radius: 50% 50% 0 0 / 34% 34% 0 0; box-shadow: 0 -18px 40px 26px #000; transform: translateY(calc(112% * var(--open))); }
+.eyes__flash { position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgb(255 60 40 / 0.85), rgb(120 0 0 / 0.95)); opacity: var(--flash); mix-blend-mode: screen; }
+.eyes__black { position: absolute; inset: 0; background: #000; opacity: var(--black); }
+
+/* the photo wall, one photograph at a time (InfoPanel PhotoViewer): no panel, no box, only text over the scene */
+.photoview { --hand: 'Caveat Variable', 'Caveat', cursive; position: absolute; inset: 0; z-index: 15; pointer-events: auto; cursor: pointer; color: #fff; font-family: var(--hand);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.9), 0 0 18px rgb(0 0 0 / 0.75); animation: photoview-in 0.9s ease 0.35s both; }
+@keyframes photoview-in { from { opacity: 0; } }
+.photoview__caption { position: absolute; left: 50%; bottom: clamp(62px, 10vh, 104px); translate: -50% 0; width: min(680px, calc(100% - 32px)); text-align: center; animation: photoview-cap 0.7s ease 0.25s both; }
+@keyframes photoview-cap { from { opacity: 0; translate: -50% 8px; } }
+.photoview__count { margin: 0 0 2px; font-size: 20px; opacity: 0.75; letter-spacing: 0.02em; }
+.photoview__title { margin: 0; font-size: clamp(30px, 4.2vw, 44px); font-weight: 600; line-height: 1.05; }
+.photoview__text { margin: 8px 0 0; font-size: clamp(20px, 2.4vw, 26px); line-height: 1.25; opacity: 0.92; }
+.photoview__nav { position: absolute; left: 50%; bottom: clamp(16px, 4vh, 40px); translate: -50% 0; display: flex; align-items: center; gap: 22px; }
+.photoview__nav button { border: 0; background: none; color: #fff; font: inherit; font-size: 30px; line-height: 1; padding: 4px 8px; cursor: pointer; text-shadow: inherit; opacity: 0.85; }
+.photoview__nav button:disabled { opacity: 0.25; cursor: default; }
+.photoview__nav .photoview__back { font-size: 20px; }
+.photoview__back kbd { margin-left: 6px; font: 600 12px/1 var(--font, system-ui); padding: 3px 6px; border: 1px solid rgb(255 255 255 / 0.5); border-radius: 4px; text-shadow: none; }
+
+/* a chapter's title card (GameHUD ChapterCard): centred over the scene, no box */
+.chapter-card { position: absolute; inset: 0; z-index: 17; display: grid; place-content: center; justify-items: center; gap: 10px; pointer-events: none; text-align: center; color: #e9edf2;
+  text-shadow: 0 0 24px rgb(0 0 0 / 0.9), 0 2px 4px rgb(0 0 0 / 0.8); animation: card-out 1.6s ease 6.6s forwards; }
+@keyframes card-out { to { opacity: 0; filter: blur(6px); } }
+.chapter-card__num { margin: 0; font: 500 12px/1 'IBM Plex Mono', monospace; letter-spacing: 0.5em; text-transform: uppercase; color: rgb(233 237 242 / 0.6); animation: card-in 2s ease 0.1s both; }
+.chapter-card__title { margin: 0; font: 200 clamp(40px, 8vw, 104px)/1 'Inter Variable', system-ui, sans-serif; letter-spacing: 0.32em; margin-right: -0.32em; }
+.chapter-card__title span { display: inline-block; animation: card-flicker 1.6s steps(1, end) both; }
+@keyframes card-flicker { 0% { opacity: 0; } 12% { opacity: 0.7; } 18% { opacity: 0; } 30% { opacity: 0.9; } 34% { opacity: 0.15; } 46%, 100% { opacity: 1; } }
+.chapter-card__line { margin: 10px 0 0; font: 400 clamp(22px, 2.6vw, 32px)/1.2 'Caveat Variable', 'Caveat', cursive; color: rgb(233 237 242 / 0.86); animation: card-in 2.4s ease 1.9s both; }
+.chapter-card__line em { font-style: normal; color: #e6cf9a; }
+@keyframes card-in { from { opacity: 0; translate: 0 6px; filter: blur(4px); } }
+
+.chapter-card--section { animation: card-out 1.4s ease 4.4s forwards; }
+.chapter-card__section { margin: 0; font: 200 clamp(28px, 4.4vw, 54px)/1 'Inter Variable', system-ui, sans-serif; letter-spacing: 0.28em; margin-right: -0.28em; text-transform: uppercase; animation: card-in 2s ease 0.4s both; }
+/* the instruction in the chase (GameHUD ChaseHint) */
+.chase-hint { position: absolute; left: 0; right: 0; bottom: clamp(70px, 14vh, 140px); z-index: 18; display: grid; justify-items: center; gap: 6px; pointer-events: none; color: #f3e9e6;
+  text-shadow: 0 0 18px rgb(0 0 0 / 0.95), 0 2px 3px rgb(0 0 0 / 0.9); animation: hint-in 0.25s ease both, hint-out 1s ease 5s forwards; }
+.chase-hint__word { margin: 0; font: 300 clamp(42px, 7vw, 84px)/1 'Inter Variable', system-ui, sans-serif; letter-spacing: 0.5em; margin-right: -0.5em; animation: hint-pulse 0.9s ease-in-out infinite; }
+.chase-hint__how { margin: 0; font: 400 clamp(18px, 2vw, 24px)/1.2 'Caveat Variable', 'Caveat', cursive; color: rgb(243 233 230 / 0.85); }
+.chase-hint__how kbd { font: 600 12px/1 'IBM Plex Mono', monospace; padding: 3px 7px; border: 1px solid rgb(255 255 255 / 0.5); border-radius: 4px; }
+@keyframes hint-in { from { opacity: 0; transform: scale(1.15); } }
+@keyframes hint-out { to { opacity: 0.0; } }
+@keyframes hint-pulse { 50% { opacity: 0.55; } }
+
+/* the jump scare's edge (pulsing dark red at the borders) and the warm white the chapter ends in (Eyes.tsx) */
+.eyes__scare { position: absolute; inset: 0; opacity: var(--scare, 0); background: radial-gradient(ellipse at center, rgb(0 0 0 / 0) 35%, rgb(70 0 0 / 0.75) 75%, rgb(10 0 0 / 0.95)); animation: scare-pulse 0.09s steps(2) infinite; }
+@keyframes scare-pulse { 50% { filter: brightness(1.6); } }
+.eyes__white { position: absolute; inset: 0; opacity: var(--white, 0); background: radial-gradient(ellipse at 50% 45%, #fffaf0, #f3e3c6); }
+
+/* the end of Chapter 02: dark text on the warm white it fades into */
+.chapter-card--end { color: #2a2118; text-shadow: none; pointer-events: auto; animation: card-in 2.4s ease both; background: radial-gradient(ellipse at 50% 45%, #fffaf0, #f3e3c6); padding: 0 24px; z-index: 21; }
+.chapter-card--end .chapter-card__num { color: rgb(42 33 24 / 0.6); }
+.chapter-card__title--end { font: 200 clamp(36px, 6vw, 80px)/1 'Inter Variable', system-ui, sans-serif; letter-spacing: 0.32em; margin: 0 -0.32em 0 0; animation: card-in 2.4s ease 0.4s both; }
+.chapter-card--end .chapter-card__line { color: rgb(42 33 24 / 0.85); max-width: 640px; animation-delay: 1.2s; }
+.chapter-card--end .chapter-card__line em { color: #8a5a1c; }
+.chapter-card__next { margin: 18px 0 0; font: 500 12px/1 'IBM Plex Mono', monospace; letter-spacing: 0.3em; text-transform: uppercase; color: rgb(42 33 24 / 0.55); animation: card-in 2s ease 2.4s both; }
+.chapter-card__actions { display: flex; gap: 22px; margin-top: 26px; animation: card-in 2s ease 3s both; flex-wrap: wrap; justify-content: center; }
+.chapter-card__actions button { border: 0; background: none; font: 400 24px/1.1 'Caveat Variable', 'Caveat', cursive; color: #2a2118; cursor: pointer; padding: 6px 4px; border-bottom: 1px solid rgb(42 33 24 / 0.35); }
+.chapter-card__actions button:hover { border-bottom-color: #8a5a1c; color: #8a5a1c; }

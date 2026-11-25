@@ -9,6 +9,10 @@ import { IntroScreen } from './IntroScreen';
 import { InfoPanel } from './InfoPanel';
 import { lookFor } from '../rendering/looks';
 import { clearInput, lockPointer } from '../player/PlayerInput';
+import { NARRATION_ENABLED, pause as pauseNarration, resume as resumeNarration, setNarrationVolume } from '../audio/narrator';
+import { director } from '../game/director';
+import { Subtitles } from './Subtitles';
+import { Eyes } from './Eyes';
 
 export function GameHUD({ surface, onExit }: { surface: () => HTMLElement | null; onExit: () => void }) {
   const mode = useGame((s) => s.mode);
@@ -41,6 +45,11 @@ export function GameHUD({ surface, onExit }: { surface: () => HTMLElement | null
       )}
       {mode === 'playing' && !locked && <LookHint />}
 
+      <Eyes />
+      <ChapterCard onExit={onExit} />
+      <ChaseHint />
+      <Subtitles />
+      {mode === 'playing' && <SkipMoment />}
       {mode === 'reading' && <InfoPanel onClose={play} />}
       {mode === 'paused' && <PauseMenu onResume={play} onExit={onExit} />}
       <IntroScreen onStart={play} onExit={onExit} range={isRange} />
@@ -50,11 +59,72 @@ export function GameHUD({ surface, onExit }: { surface: () => HTMLElement | null
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+/** the instruction when it comes for the visitor: RUN, and how (the visitor's own movement style) */
+function ChaseHint() {
+  const hint = useGame((g) => g.hint), movement = useGame((g) => g.settings.movement);
+  if (hint !== 'run') return null;
+  return (
+    <div className="chase-hint" role="alert">
+      <p className="chase-hint__word">RUN</p>
+      <p className="chase-hint__how">{movement === 'scroll' ? <>Tap <kbd>Space</kbd> again and again to run</> : <>Hold <kbd>Shift</kbd> + <kbd>W</kbd> to sprint</>}</p>
+    </div>
+  );
+}
+
+/** a chapter's title over the scene as it opens: the number, the title with its letters flickering on like failing
+ *  light, and the line under it in the handwritten face with its key words in pale gold; then it all fades */
+function ChapterCard({ onExit }: { onExit: () => void }) {
+  const card = useGame((g) => g.titleCard);
+  if (card === 'shadows-end') return (
+    <div className="chapter-card chapter-card--end" role="dialog" aria-label="End of Chapter 02">
+      <p className="chapter-card__num">End of Chapter 02</p>
+      <h1 className="chapter-card__title chapter-card__title--end">THE SHADOWS</h1>
+      <p className="chapter-card__line">The things that shaped me, even when I didn't <em>understand them.</em></p>
+      <p className="chapter-card__next">Chapter 03 · Rebirth · in production</p>
+      <div className="chapter-card__actions">
+        <button type="button" onClick={() => { window.location.href = `${window.location.pathname}?chapter=shadows`; }}>Play Chapter 02 again</button>
+        <button type="button" onClick={onExit}>Back to the website</button>
+      </div>
+    </div>
+  );
+  if (card !== 'shadows') return null;
+  const title = 'THE SHADOWS';
+  return (
+    <div className="chapter-card" aria-live="polite">
+      <p className="chapter-card__num">Chapter 02</p>
+      <h1 className="chapter-card__title" aria-label="The Shadows">
+        {title.split('').map((c, i) => <span key={i} style={{ animationDelay: `${0.25 + ((i * 7) % 11) * 0.11}s` }}>{c === ' ' ? '\u00a0' : c}</span>)}
+      </h1>
+      <p className="chapter-card__line">The things that shaped me, even when I didn't <em>understand them.</em></p>
+    </div>
+  );
+}
+
+/** "Skip" while a scripted moment can be skipped (Cinematics.tsx); Enter does the same */
+function SkipMoment() {
+  const cinematic = useGame((g) => g.cinematic);
+  const opening = cinematic === 'opening';
+  const skippable = !!cinematic && !!director.skip;
+  useEffect(() => {
+    if (!skippable) return;
+    const onKey = (e: KeyboardEvent) => { if (e.code === 'Enter') { e.preventDefault(); director.skip?.(); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [skippable]);
+  if (!skippable) return null;
+  return <button type="button" className="cine-skip" onClick={() => director.skip?.()}>{opening ? 'Skip intro' : 'Skip'}<kbd>Enter</kbd></button>;
+}
+
 /** keeps the audio engine in step with settings and the current chapter */
 function useAudioDirector() {
   const volume = useGame((g) => g.settings.volume), chapter = useGame((g) => g.chapter);
-  useEffect(() => { audio.setAmbience(chapter === 'survival' ? ((lookFor('survival').weather?.rain ?? 0) > 0 ? 'tropical-rain' : 'tropical-day') : null); }, [chapter]);
+  useEffect(() => { audio.setAmbience(chapter === 'survival' ? ((lookFor('survival').weather?.rain ?? 0) > 0 ? 'tropical-rain' : 'tropical-day') : chapter === 'shadows' ? 'island-night' : null); }, [chapter]);
+  useEffect(() => { audio.setMusic(chapter === 'survival' ? 'survival' : chapter === 'shadows' ? 'shadows' : null); }, [chapter]);
   useEffect(() => { audio.setVolume(volume); }, [volume]);
+  // the narrator: its own volume, and it pauses with the game
+  const narration = useGame((g) => g.settings.narration), mode = useGame((g) => g.mode);
+  useEffect(() => { setNarrationVolume(narration); }, [narration, volume]);
+  useEffect(() => { if (mode === 'paused') pauseNarration(); else resumeNarration(); }, [mode]);
   useEffect(() => () => audio.disable(), []);
 }
 
@@ -75,6 +145,8 @@ function PauseMenu({ onResume, onExit }: { onResume: () => void; onExit: () => v
   const volume = useGame((g) => g.settings.volume);
   const movement = useGame((g) => g.settings.movement);
   const guide = useGame((g) => g.settings.guide);
+  const narration = useGame((g) => g.settings.narration);
+  const cameraFx = useGame((g) => g.settings.cameraFx);
   const save = useGame((g) => g.save);
   const [confirming, setConfirming] = useState(false);
   const first = useRef<HTMLButtonElement>(null);
@@ -96,6 +168,13 @@ function PauseMenu({ onResume, onExit }: { onResume: () => void; onExit: () => v
             onChange={(e) => updateSettings({ volume: Number(e.target.value) })} />
         </div>
 
+        {NARRATION_ENABLED && <div className="pause__group">
+          <label className="pause__label" htmlFor="pause-voice">Voice <span>{Math.round(narration * 100)}</span></label>
+          <input id="pause-voice" className="pause__range" type="range" min="0" max="1" step="0.05" value={narration}
+            style={{ '--fill': `${narration * 100}%` } as React.CSSProperties}
+            onChange={(e) => updateSettings({ narration: Number(e.target.value) })} />
+        </div>}
+
         <div className="pause__group">
           <p className="pause__label" id="pause-movement">Movement</p>
           <div className="pause__choice" role="radiogroup" aria-labelledby="pause-movement">
@@ -109,6 +188,14 @@ function PauseMenu({ onResume, onExit }: { onResume: () => void; onExit: () => v
           <div className="pause__choice" role="radiogroup" aria-labelledby="pause-guide">
             <button type="button" role="radio" aria-checked={guide} onClick={() => updateSettings({ guide: true })}>On</button>
             <button type="button" role="radio" aria-checked={!guide} onClick={() => updateSettings({ guide: false })}>Off</button>
+          </div>
+        </div>
+
+        <div className="pause__group">
+          <p className="pause__label" id="pause-camera">Camera effects</p>
+          <div className="pause__choice" role="radiogroup" aria-labelledby="pause-camera">
+            <button type="button" role="radio" aria-checked={cameraFx} onClick={() => updateSettings({ cameraFx: true })}>On</button>
+            <button type="button" role="radio" aria-checked={!cameraFx} onClick={() => updateSettings({ cameraFx: false })}>Off</button>
           </div>
         </div>
 
@@ -139,7 +226,7 @@ export function usePauseOnUnlock() {
     const onKey = (e: KeyboardEvent) => {
       const m = getGame().mode;
       if (e.code === 'Escape' && m === 'playing' && !document.pointerLockElement) setGame({ mode: 'paused' });
-      if (e.code === 'KeyE' && m === 'reading') { setGame({ reading: null, mode: 'playing' }); }
+      if (e.code === 'KeyE' && m === 'reading' && getGame().titleCard !== 'shadows-end') { setGame({ reading: null, mode: 'playing' }); }
     };
     document.addEventListener('pointerlockchange', onChange);
     window.addEventListener('keydown', onKey);

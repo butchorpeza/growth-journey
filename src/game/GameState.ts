@@ -6,14 +6,18 @@ import type { ChapterId } from '../data/chapters';
 export type GameMode = 'loading' | 'intro' | 'playing' | 'paused' | 'reading';
 
 export interface Prompt { id: string; verb: string; label: string }
-export interface Settings { sensitivity: number; invertY: boolean; quality: 'high' | 'medium' | 'low'; audio: boolean; volume: number; reducedMotion: boolean; widescreenBars: boolean; movement: 'scroll' | 'free'; guide: boolean }
-export interface SaveData { chapter: ChapterId; checkpoint: string | null; completed: ChapterId[]; discovered: string[]; restored: string[] }
+export interface Settings { sensitivity: number; invertY: boolean; quality: 'high' | 'medium' | 'low'; audio: boolean; volume: number; reducedMotion: boolean; widescreenBars: boolean; movement: 'scroll' | 'free'; guide: boolean; narration: number; cameraFx: boolean }
+export interface SaveData { chapter: ChapterId; checkpoint: string | null; completed: ChapterId[]; discovered: string[]; restored: string[]; seen: string[] }
 
 export interface GameState {
   mode: GameMode;
   chapter: ChapterId;
   prompt: Prompt | null;       // what "E" would do right now
   reading: string | null;      // narrative entry id open in the panel
+  cinematic: string | null;    // the scripted sequence playing (director.ts), if any
+  storyStarted: boolean;       // the opening has played or been skipped (the guiding trail appears then)
+  titleCard: string | null;    // a chapter's title shown over the scene (GameHUD ChapterCard)
+  hint: string | null;         // an instruction in a tense moment (GameHUD ChaseHint): 'run'
   pointerLocked: boolean;
   loadProgress: number;        // 0…100 while assets load
   settings: Settings;
@@ -25,8 +29,8 @@ const load = <T,>(k: string, fallback: T): T => { try { const v = localStorage.g
 const store = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode: progress just isn't kept */ } };
 
 const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-const defaultSettings: Settings = { sensitivity: 1, invertY: false, quality: 'high', audio: true, volume: 0.7, reducedMotion: !!prefersReducedMotion, widescreenBars: false, movement: 'scroll', guide: true };
-const defaultSave: SaveData = { chapter: 'survival', checkpoint: null, completed: [], discovered: [], restored: [] };
+const defaultSettings: Settings = { sensitivity: 1, invertY: false, quality: 'high', audio: true, volume: 0.7, reducedMotion: !!prefersReducedMotion, widescreenBars: false, movement: 'scroll', guide: true, narration: 0.9, cameraFx: true };
+const defaultSave: SaveData = { chapter: 'survival', checkpoint: null, completed: [], discovered: [], restored: [], seen: [] };
 
 /** settings the visitor doesn't choose (the pause menu only offers volume and movement): High graphics, sound on
  *  (volume 0 mutes it), full screen without bars, normal look, and reduced motion from the system preference.
@@ -40,10 +44,12 @@ function migrateSettings(s: Settings & { rev?: number }): Settings {
 }
 
 /** Chapter 01 is the starting world; ?range opens the technical test range instead */
-const startChapter: ChapterId = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('range') ? 'prototype' : 'survival';
+// ?range: the test range; ?chapter=shadows: straight into Chapter 02 (for building it); otherwise Chapter 01
+const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+const startChapter: ChapterId = params?.has('range') ? 'prototype' : params?.get('chapter') === 'shadows' ? 'shadows' : 'survival';
 
 let state: GameState = {
-  mode: 'loading', chapter: startChapter, prompt: null, reading: null, pointerLocked: false, loadProgress: 0,
+  mode: 'loading', chapter: startChapter, prompt: null, reading: null, cinematic: null, storyStarted: false, titleCard: null, hint: null, pointerLocked: false, loadProgress: 0,
   settings: migrateSettings(load(SETTINGS_KEY, defaultSettings)), save: load(SAVE_KEY, defaultSave),
 };
 const listeners = new Set<() => void>();

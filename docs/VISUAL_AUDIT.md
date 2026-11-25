@@ -239,7 +239,7 @@ Screenshots: `docs/visual-review/interactions/`.
   `src/interface/InfoPanel.tsx`.
 - To add your own photos, change the `src` paths in `photos.ts` and set `placeholder: false`.
   - The collage uses `collage-1…6-placeholder.jpg`.
-  - K9's photo is `/assets/images/k9-photo-placeholder.jpg`.
+  - K9's photo is `/assets/images/k9.jpg` and the cat's `/assets/images/my-cat.jpg` (both supplied by Butch, metadata stripped).
 - The placeholders are labelled images. No memories or photos were invented.
 
 **Panels and controls:**
@@ -287,3 +287,116 @@ Screenshots: `docs/visual-review/interactions/`.
 - The mode switches to `reading` and back to `playing` when the panel closes.
 - `tsc` is clean.
 - There are no console errors at night or in `?weather=afternoon`.
+
+## Camera framing, the E panel, the cement panel and music (2026-11-25)
+
+- **E panel:** now in the pause menu's style. It is a black panel on the right in the handwritten face, black and white, sliding in from the edge. The scene is not blurred.
+- **E camera** (`player/viewFocus.ts`, `PlayerCamera.tsx`):
+  - It turns to the object and zooms in so the object fills about half the view, framed left of the panel.
+  - If a post, fence or bench back is in the way, the camera slides up to about 1 m aside, forward or up to a clear view.
+  - It eases back when the panel closes.
+  - The rendered close-ups of the sungka and motorcycle are no longer shown; the live zoom replaces them.
+- **Scroll path:**
+  - Passing any featured interactable (dog, cat, sungka, motorcycle, lamp, photo wall, portal, and anything added later with `<Interactable>`), the camera turns fully to it, zooms in up to 2×, and takes a clear view past whatever is in the way.
+  - The path also slows to a stroll while passing (`RailController`), so the object is seen even when scrolling fast.
+  - The door is excluded (`featured={false}`).
+  - The sungka's reach is now 4.5 m, like the cat's 5 m and K9's 4.2 m.
+- **Cement panel:** the Poly Haven "cracked concrete wall" scan was a bright cream peeling plaster with panel-sized blotches. Under the porch light it read as camouflage. In the shader its patches are now pulled halfway to their average, its cream is replaced by the grey-green tint, it tiles about every 0.9 m, its relief is shallower, and the splash band is darker. Geometry is unchanged.
+- **Music** (`audio/music.ts`): a quiet, generated score.
+  - A soft pad on D minor → B♭ → F → C, with a low bass.
+  - Occasional kulintang-like pentatonic gong phrases with an echo.
+  - It sits about 12 dB under the rain bed and fades out as the portal's sound takes over.
+
+**Follow-ups (2026-11-25):**
+- **Passing looks are no longer sticky.** The camera looks at an object only while it is ahead or beside, within about 83° of the path's direction.
+  - It counts as passed once you have come closest to it and walked on.
+  - It is never looked back at, unless you scroll back past it.
+  - The camera lets go about twice as fast as it turns in, and the slowdown ends with it.
+  - Neighbours are framed together (the cat on the sungka's bench).
+- **Flicker on the house** was edge and texture aliasing: shimmer whenever the camera moved even a fraction of a pixel, worst on the adaptive steps without MSAA.
+  - SMAA (high preset) now runs whenever MSAA is off.
+  - The thatch's strand relief is halved, so it no longer glitters under the porch bulb.
+  - Shimmer on the house under a 0.5 mm camera move fell from 0.79% to 0.38% of its pixels, at no measurable frame-time cost.
+- **Sound:** the weather and insects are at half level (thunder 0.55), and the music is up from 0.2 to 0.42, so the score now carries over the rain.
+- **Still when idle:** the camera's handheld drift now plays only while the visitor moves or looks around. Standing still, it settles over about 1 s into a locked-off shot. Frame to frame, only 0.2% of pixels then change (the plants in the wind), against 11.6% while moving. An open E panel also holds steady.
+- **Photo wall:** Butch's own photographs replace the placeholders: a studio portrait, an outdoor portrait, one at the desk, and his 21st birthday.
+  - They are resized for the web and stripped of EXIF and location data.
+  - Four photos hang as a staggered row of larger frames (five or six use the grid). Each is cropped to its frame, biased upwards for faces, at slightly different depths so the frames never flicker.
+  - Captions only name what is shown; the stories are his to add in `src/data/photos.ts`.
+- **The cat** is now a ginger tabby like Butch's own. The model's grey fur is mapped onto a ginger palette when it loads, keeping its stripes and shading.
+  - The cat's panel shows a photo once `CAT.image` in `photos.ts` points at one.
+- **K9** now has Butch's dog's red-brown coat, using the same in-browser recolouring as the cat (deep brown shade → rust → tan → cream chest), with the mouth, eyes, nose and pads untouched. His panel keeps its photo slot (`K9.image` in `photos.ts`) for the real photograph.
+- **Sungka board and cat on the bench:**
+  - The board lies flat and lengthwise on the shelter bench's seat (`placeSungka` in `SurvivalChapter.tsx`, from the bench's own angle and probed seat height). Before, it floated crosswise at 0.85 m, the height of the table the bench replaced, and read as a board standing on end. Its interaction point moved with it.
+  - The cat sits on the seat itself, not the armrest. It is placed 17 cm in from the far end so its body stays on the bench, and faces the board.
+- **E panel background:** the scene behind it is softly blurred (4 px) and a little darkened (30% black).
+
+## Narration, subtitles and scripted moments (2026-11-25)
+
+**Narration** (`src/data/narration.ts`, `src/audio/narrator.ts`):
+- Every voice line lives in one data file, with gold keywords and pauses.
+- One narration plays at a time. It can pause (with the game), stop and replay, has its own "Voice" volume, and ducks the music and weather while speaking.
+- Voice order: Butch's `.mp3` recordings first; then the generated stand-in `.m4a` files (Kokoro-82M, Apache-2.0: a blend of the young voices `am_puck` 0.65 and `zm_yunxi` 0.35, a young man around 20 with a light Asian timbre, chosen by Butch; with exact line cues); then browser text-to-speech; then silent timed subtitles. See `public/audio/chapter-01/README.md`.
+- The stand-in voice is synthetic and temporary, not voice acting.
+
+**Subtitles** (`Subtitles.tsx`):
+- Bottom centre, in the panels' handwritten face (Caveat), white with a soft dark band and shadow, gold keywords in the sentence.
+- Words fade in with the voice, and the line fades out at the end.
+- With a panel open, the subtitles sit left of it.
+
+**Object narration:**
+- Each E panel (lamp, photo wall, K9, cat, sungka, motorcycle) speaks its line as it opens, with a "Listen again" / "Stop the voice" control. Closing the panel stops the voice.
+- While their panels are open, K9 looks up at the visitor and wags his tail, the cat glances up, and the photo selected in the gallery glows on the wall.
+
+**Scripted moments** (`chapters/survival/Cinematics.tsx`, `game/director.ts`):
+
+| Moment | Trigger | What happens |
+|---|---|---|
+| Opening | Start of the path | A slow look round the room while the start screen fades; "Hey, I'm Butch." The trail appears after it. "Skip intro" is available, or press Enter. |
+| After K9 | Just after K9, only if he was greeted | A voice line only. |
+| Portal notice | Just past the gate | The view turns to the far portal and zooms in, holds, and returns. "Wait... What's that?" |
+| Portal confusion | Past the motorcycle | A hesitation, a small pull of the view, one brief stutter, a vignette and colour fringe; the portal grows brighter. |
+| Portal pull | Further down the road | The walk falters, the view is drawn to the portal and the lens narrows, two short stutters, the sound goes muffled; the portal is brighter still. |
+
+**Rules for scripted moments:**
+- They work in scroll mode and when walking freely (WASD). The trigger is progress along the route: from the scroll path, or else the player's position projected onto the same route (more than ~4 m off it, nothing starts). WASD movement is held during the short scripted looks too.
+- One moment plays at a time, each once per visit, and the portal beats play in order.
+- They are triggered by the visitor's real position on the path. A window that has been walked past is dropped.
+- The walk is held for at most about 5 s.
+- No E panels open during a moment.
+- The pause menu's "Camera effects: Off" leaves only the voice. Reduced motion removes the stutter and halves the zooms.
+
+## Wake-up, the portal's pull, the photo wall up close (supersedes the voiceover beats above)
+
+The voice is switched off for now (`NARRATION_ENABLED = false` in `audio/narrator.ts`). The recordings, scripts and subtitles stay in place, ready to switch back on. The "After K9", "Portal confusion" and "Portal pull" beats are removed. "Portal notice" stays, without a voice.
+
+**Opening: waking up in bed** (`Cinematics.tsx`, `interface/Eyes.tsx`):
+1. The visit starts lying on the bed in house A, with the head on the pillow, looking up at the roof (breathing).
+2. The eyes open heavily and close again, open, give a quick blink, and stay open. The blur clears over about 5 s.
+3. The head turns to the room. He sits up on the edge of the bed (facing the open side, clear of the floral curtain) and looks at the oil lamp.
+4. He stands, and a couple of steps hand over to the visitor's own view at the start of the path.
+5. It lasts about 12.5 s, including a 1.8 s hold behind the start screen's fade. "Skip intro" or Enter skips it. Reduced motion caps the blur.
+
+**Walking and running:** the head bob drops at each footfall, sways and tilts with the step, nods a little, and leans forward when running (`movement.ts` `bob`).
+
+**The portal's pull** (`chapters/survival/PortalPull.tsx`):
+- It only wakes once all six discoveries have been found (lamp, photo wall, K9, cat, sungka, motorcycle).
+- From about 30 m away it grows stronger:
+  - every step gets heavier; walking away hardly gets anywhere, and scrolling back is refused;
+  - it drags the visitor forward in lurches every 1–3 s, and each lurch jerks the head forward with a low rumble;
+  - the camera shakes, the view is drawn to the portal, the edges darken and fringe, and the sound goes far away.
+- At about 6 m it takes over (a cutscene):
+  1. The camera is dragged in, with two last struggles where it slips back.
+  2. The shake and the field of view grow, and the horizon tips.
+  3. The vortex fills the view, then a red flash and black.
+- Then the "Beyond the Beginning" panel ("Enter Chapter 02") opens as the black lifts. The visitor is set 9 m back up the road, and the pull is spent for this visit.
+- "Camera effects: Off" removes the shake, the lurching view and the fringe. Reduced motion quarters the shake.
+
+**E panels:** no blur behind them, only a light darkening. The push-in is gentler: the object fills about a quarter of the view, and the field of view stays at 34° or wider.
+
+**The photo wall up close:**
+- There is no panel. The camera leans in to one photograph at a time, square to its frame and tilted with it, and glides along the wall to the next.
+- Below the photo, as plain text in the handwritten face with no box: the collection and count, the title, and the description. Photos without their own description borrow the collection's lines in order.
+- Use ← / → (or A / D, the wheel, or a click on either side) to move between photos. E or Esc steps back.
+
+**Fix:** the E that closes a panel no longer reopens it on the next frame. The interaction manager ignores a press for the first few frames after play resumes.

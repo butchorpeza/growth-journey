@@ -29,12 +29,15 @@ export const VIEW = {
     yawSpeed: 1.9,     // rad/s at the very edge (scaled by sensitivity)
     pitchSpeed: 0.8,
   },
-  bob: {               // restrained head bob, off with reduced motion
-    strideWalk: 1.5,   // m travelled per full bob cycle (two steps)
-    strideRun: 2.3,
-    heightWalk: 0.022, // m vertical amplitude
-    heightRun: 0.03,
-    sway: 0.4,         // lateral amplitude as a fraction of the vertical one
+  bob: {               // head motion of a real walk, off with reduced motion
+    strideWalk: 1.45,  // m travelled per full bob cycle (two steps)
+    strideRun: 2.4,
+    heightWalk: 0.034, // m vertical amplitude (the head drops at each footfall)
+    heightRun: 0.055,
+    sway: 0.5,         // lateral amplitude as a fraction of the vertical one
+    roll: 0.012,       // radians of side-to-side tilt per step at a walk (doubled at a run)
+    nod: 0.006,        // radians the head nods down at each footfall
+    lean: 0.035,       // radians the view leans forward at full run
     landDip: 0.06,     // m the view dips on a hard landing
   },
   stepSmoothing: 14,   // 1/s: eases the eye up stairs instead of snapping with each autostep

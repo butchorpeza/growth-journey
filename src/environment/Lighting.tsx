@@ -14,10 +14,10 @@ import type { Look } from '../rendering/looks';
 const EXTENT = 24;        // m, half-size of the shadow frustum around the visitor
 const DISTANCE = 60;      // m, sun distance from the visitor along its direction
 
-export function Lighting({ look, quality }: { look: Look; quality: 'high' | 'medium' | 'low' }) {
+export function Lighting({ look, quality, shadowSize = 2048 }: { look: Look; quality: 'high' | 'medium' | 'low'; shadowSize?: number }) {
   const sun = useRef<DirectionalLight>(null);
   const shadows = quality !== 'low';
-  const mapSize = quality === 'high' ? 2048 : 1024;
+  const mapSize = quality === 'high' ? shadowSize : 1024;   // the adaptive budget can halve it (rendering/adaptive.ts)
   const dir = useMemo(() => new Vector3(...look.sun.direction).normalize(), [look.sun.direction]);
 
   useEffect(() => {

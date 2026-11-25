@@ -9,6 +9,10 @@ import { audio } from '../audio/AudioEngine';
 import { getGame } from '../game/GameState';
 import type { Look } from './looks';
 
+/** the current flash (0…1, read by skies and seas that light up with it); `strike()` calls one now (a scripted
+ *  reveal), whatever the timer says */
+export const lightningState = { k: 0, forced: false, envScale: 1, strike() { this.forced = true; } };
+
 export function Lightning({ look }: { look: Look }) {
   const scene = useThree((s) => s.scene);
   const flash = useRef<DirectionalLight>(null);
@@ -17,9 +21,10 @@ export function Lightning({ look }: { look: Look }) {
 
   useFrame((_, rawDt) => {
     const dt = Math.min(Math.max(rawDt, 0), 0.1), s = st.current;
-    if (strength <= 0 || getGame().settings.reducedMotion) { scene.environmentIntensity = look.sky.envIntensity; scene.backgroundIntensity = look.sky.backgroundIntensity; if (flash.current) flash.current.intensity = 0; return; }
+    if (strength <= 0 || getGame().settings.reducedMotion) { lightningState.k = 0; lightningState.forced = false; scene.environmentIntensity = look.sky.envIntensity * lightningState.envScale; scene.backgroundIntensity = look.sky.backgroundIntensity; if (flash.current) flash.current.intensity = 0; return; }
     s.t += dt;
-    if (s.t >= s.next) {
+    if (s.t >= s.next || lightningState.forced) {
+      lightningState.forced = false;
       // a strike: 2–3 pulses, each a sharp rise and quick decay
       const n = 2 + Math.floor(Math.random() * 2);
       s.pulses = Array.from({ length: n }, (_, i) => [s.t + i * (0.11 + Math.random() * 0.12), 0.6 + Math.random() * 0.4] as [number, number]);
@@ -29,7 +34,8 @@ export function Lightning({ look }: { look: Look }) {
     }
     let k = 0;
     for (const [at, amp] of s.pulses) { const x = s.t - at; if (x >= 0 && x < 0.35) k = Math.max(k, amp * Math.exp(-x * 14)); }
-    scene.environmentIntensity = look.sky.envIntensity + k * 1.6 * strength;
+    lightningState.k = k * strength;
+    scene.environmentIntensity = (look.sky.envIntensity + k * 1.6 * strength) * lightningState.envScale;
     scene.backgroundIntensity = look.sky.backgroundIntensity + k * 1.3 * strength;
     if (flash.current) flash.current.intensity = k * 4 * strength;
   });

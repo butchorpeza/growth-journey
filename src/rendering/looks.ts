@@ -76,17 +76,22 @@ export const LOOKS: Record<ChapterId, Look> = {
   },
 
   // overcast daytime rain is kept as a variant (?weather=rain)
-  // 02 · The Shadows — moonlight: cold, low key, deep but readable shadows, warm pools of lantern light.
+  // 02 · The Shadows — an island at night under heavy overcast: a cold moon low in the north behind the estate (it
+  // outlines the mansion and the dead trees), blue-grey fog on the ground and the sea, lightning far off now and
+  // then. Low key but readable: deep navy shadows (never black), desaturated greens and greys, the only warmth a few
+  // failing lamps. The sky itself is drawn by the chapter (shadows/Seascape.tsx Sky); the HDRI only lights.
   shadows: {
-    sky: { hdri: OVERCAST, envIntensity: 0.18, backgroundIntensity: 0.08, backgroundBlur: 0.1 },
-    sun: { direction: [-0.4, 0.75, -0.3], color: '#9fb6dc', intensity: 0.35 },
-    fog: { color: '#1f2733', density: 0.03 },
+    sky: { hdri: OVERCAST, envIntensity: 0.16, backgroundIntensity: 0.02, backgroundBlur: 0.1 },
+    sun: { direction: [-0.22, 0.42, -0.88], color: '#a9bde0', intensity: 1.6 },
+    fog: { color: '#141b26', density: 0.02 },
+    weather: { rain: 0, wetness: 0.2, cloudShadows: 0, lightning: 0.5 },
+    practicals: 1,
     post: {
-      exposure: -0.2, toneMapping: 'aces', temperature: -0.22, tint: 0.02, contrast: 1.2, saturation: 0.62,
-      lift: [0.0, 0.006, 0.014], gamma: [0.98, 1.0, 1.04], gain: [0.96, 1.0, 1.06],
-      shadows: [0.1, 0.22, 0.34], highlights: [1.0, 0.72, 0.45], balance: 0.15,
-      ao: { radius: 1.6, intensity: 3, falloff: 0.8 }, bloom: { intensity: 0.55, threshold: 0.6, smoothing: 0.3, radius: 0.75 },
-      vignette: { offset: 0.25, darkness: 0.6 }, grain: 0.06, chromatic: 0.0008,
+      exposure: 0.7, toneMapping: 'aces', temperature: -0.2, tint: 0.02, contrast: 1.1, saturation: 0.62,
+      lift: [0.004, 0.008, 0.016], gamma: [0.98, 1.0, 1.04], gain: [0.96, 1.0, 1.06],
+      shadows: [0.1, 0.18, 0.32], highlights: [1.0, 0.8, 0.58], balance: 0.15,
+      ao: { radius: 1.6, intensity: 2.8, falloff: 0.8 }, bloom: { intensity: 0.5, threshold: 0.6, smoothing: 0.3, radius: 0.75 },
+      vignette: { offset: 0.28, darkness: 0.5 }, grain: 0.06, chromatic: 0.0006,
     },
   },
 
