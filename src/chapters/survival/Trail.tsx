@@ -10,18 +10,24 @@ import { getGame, useGame } from '../../game/GameState';
 import { lookFor } from '../../rendering/looks';
 import { playerState } from '../../player/playerState';
 import { SURVIVAL_PATH } from './path';
+import type { RailWaypoint } from '../../player/rail';
+import type { ChapterId } from '../../data/chapters';
 
 const SPACING = 0.2;                 // metres between motes along the path
 
-export function Trail({ world }: { world: Object3D }) {
-  const on = useGame((s) => s.settings.guide);
+/** `path` (default Chapter 01's) is the route; `heightAt(x, z, y)` gives the floor under a mote when it isn't found
+ *  by raycasting the world (y: the route's own height there, from the waypoints' floor hints) */
+export function Trail({ world, path = SURVIVAL_PATH, heightAt, chapter = 'survival' }: { world: Object3D; path?: RailWaypoint[]; heightAt?: (x: number, z: number, y: number) => number; chapter?: ChapterId }) {
+  // it appears once the opening has played (or been skipped), and follows the pause menu's setting
+  const on = useGame((s) => s.settings.guide && s.storyStarted);
   const dpr = useThree((s) => s.viewport.dpr);
   const data = useMemo(() => {
-    const curve = new CatmullRomCurve3(SURVIVAL_PATH.map((w) => new Vector3(w.at[0], 0, w.at[1])), false, 'centripetal');
+    const curve = new CatmullRomCurve3(path.map((w) => new Vector3(w.at[0], w.floor ?? 0, w.at[1])), false, 'centripetal');
     const len = curve.getLength(), n = Math.floor(len / SPACING);
     const pts = curve.getSpacedPoints(n);
     const ray = new Raycaster(); ray.far = 10; const down = new Vector3(0, -1, 0), o = new Vector3();
-    const groundAt = (x: number, z: number) => {
+    const groundAt = (x: number, z: number, y = 0) => {
+      if (heightAt) return heightAt(x, z, y);
       ray.set(o.set(x, 2.6, z), down);                                // from below the roofs, like the scroll path
       const hit = ray.intersectObject(world, true).find((h) => h.object.visible && h.face && h.face.normal.y > 0.3);
       return hit ? hit.point.y : 0;
@@ -33,7 +39,7 @@ export function Trail({ world }: { world: Object3D }) {
       const p = pts[i], d = pts[i + 1].clone().sub(p).normalize(), side = new Vector3(-d.z, 0, d.x);
       for (let k = 0; k < 2; k++) {                                     // two loose lines of motes, a little apart
         const off = (k === 0 ? -1 : 1) * (0.14 + rnd() * 0.12), x = p.x + side.x * off + (rnd() - 0.5) * 0.08, z = p.z + side.z * off + (rnd() - 0.5) * 0.08;
-        pos.push(x, groundAt(x, z) + 0.05 + rnd() * 0.06, z); along.push(i * SPACING); seed.push(rnd());
+        pos.push(x, groundAt(x, z, p.y) + 0.05 + rnd() * 0.06, z); along.push(i * SPACING); seed.push(rnd());
       }
     }
     const g = new BufferGeometry();
@@ -42,7 +48,7 @@ export function Trail({ world }: { world: Object3D }) {
     g.setAttribute('aSeed', new Float32BufferAttribute(seed, 1));
     g.computeBoundingSphere();
     // in daylight a faint additive glow vanishes against the bright mud: stronger the brighter the sky
-    const gain = 1 + 4 * Math.max(0, lookFor('survival').sky.envIntensity - 0.12);
+    const gain = 1 + 4 * Math.max(0, lookFor(chapter).sky.envIntensity - 0.12);
     const mat = new ShaderMaterial({
       uniforms: { uTime: { value: 0 }, uOn: { value: 1 }, uPlayerS: { value: 0 }, uColor: { value: new Color('#e3a04e').multiplyScalar(2.8 * gain) }, uPx: { value: dpr } },
       vertexShader: /* glsl */ `
@@ -73,7 +79,7 @@ export function Trail({ world }: { world: Object3D }) {
       transparent: true, depthWrite: false, blending: AdditiveBlending, toneMapped: false,
     });
     return { g, mat, pts };
-  }, [world, dpr]);
+  }, [world, dpr, path, heightAt, chapter]);
 
   let frame = 0;
   useFrame((_, dt) => {
@@ -83,7 +89,7 @@ export function Trail({ world }: { world: Object3D }) {
     // the visitor's position along the trail (nearest sample), refreshed a few times a second
     if (frame++ % 10 === 0) {
       const p = playerState.position; let best = 0, bd = Infinity;
-      data.pts.forEach((q, i) => { const dd = (q.x - p.x) ** 2 + (q.z - p.z) ** 2; if (dd < bd) { bd = dd; best = i; } });
+      data.pts.forEach((q, i) => { const dd = (q.x - p.x) ** 2 + (q.z - p.z) ** 2 + (heightAt ? (q.y - p.y) ** 2 : 0); if (dd < bd) { bd = dd; best = i; } });
       u.uPlayerS.value = best * SPACING;
     }
   });

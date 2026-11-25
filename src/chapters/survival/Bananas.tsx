@@ -19,6 +19,7 @@ import { ignoreRaycast } from '../../rendering/bvh';
 import { applyWeather } from '../../rendering/weather';
 import { applyWind } from '../../rendering/wind';
 import { applyFade, withFade } from '../../rendering/fade';
+import { commit, makeCullable, releaseCullable } from '../../rendering/instanceCulling';
 import { SURVIVAL_BASE } from './layout';
 import type { Inst } from './scatter';
 
@@ -123,9 +124,12 @@ export function Field({ instances, url = `${SURVIVAL_BASE}/banana_lod.glb`, near
     });
     for (const b of [cards, ...solids]) { b.mesh.count = 0; b.mesh.frustumCulled = false; b.mesh.receiveShadow = true; ignoreRaycast(b.mesh); }
     for (const s of solids) s.mesh.castShadow = shadows;
-    return { cards, solids, rt: imp.rt, cardMat };
+    // the 3D models are drawn only where the camera looks (rendering/instanceCulling.ts), unless they cast shadows;
+    // the cards are a few triangles each and stay whole
+    const culls = solids.map((s) => (shadows ? undefined : makeCullable(s.mesh, [s.fade])));
+    return { cards, solids, culls, rt: imp.rt, cardMat };
   }, [scene, gl, instances, baseScale, shadows]);
-  useEffect(() => () => { field.rt.dispose(); field.cardMat.dispose(); [field.cards, ...field.solids].forEach((b) => b.mesh.dispose()); }, [field]);
+  useEffect(() => () => { field.culls.forEach(releaseCullable); field.rt.dispose(); field.cardMat.dispose(); [field.cards, ...field.solids].forEach((b) => b.mesh.dispose()); }, [field]);
 
   const last = useRef({ x: Infinity, z: Infinity });
   useEffect(() => { last.current = { x: Infinity, z: Infinity }; }, [field]);
@@ -141,10 +145,17 @@ export function Field({ instances, url = `${SURVIVAL_BASE}/banana_lod.glb`, near
     for (const t of instances) {
       const d = Math.hypot(t[0] - p.x, t[2] - p.z);
       const f = Math.min(1, Math.max(0, 1 - (d - lo) / FADE_BAND));        // 1 = full model, 0 = card
-      if (f > 0) { for (const s of field.solids) { toMatrix(t, s.rel, s.mesh.instanceMatrix.array as Float32Array, n3); s.fade.setX(n3, f); } n3++; }
+      if (f > 0) {
+        field.solids.forEach((s, j) => { const c = field.culls[j]; toMatrix(t, s.rel, c ? c.src : s.mesh.instanceMatrix.array as Float32Array, n3); if (c) c.extras[0].src[n3] = f; else s.fade.setX(n3, f); });
+        n3++;
+      }
       if (f < 1) { toMatrix(t, field.cards.rel, field.cards.mesh.instanceMatrix.array as Float32Array, nc); field.cards.fade.setX(nc, f); nc++; }
     }
-    for (const s of field.solids) { s.mesh.count = n3; s.mesh.instanceMatrix.needsUpdate = true; s.fade.needsUpdate = true; s.mesh.boundingSphere = new Sphere(new Vector3(p.x, 0, p.z), near + FADE_BAND + 10); }
+    field.solids.forEach((s, j) => {
+      const c = field.culls[j];
+      if (c) commit(c, n3); else { s.mesh.count = n3; s.mesh.instanceMatrix.needsUpdate = true; s.fade.needsUpdate = true; }
+      s.mesh.boundingSphere = new Sphere(new Vector3(p.x, 0, p.z), near + FADE_BAND + 10);
+    });
     field.cards.mesh.count = nc; field.cards.mesh.instanceMatrix.needsUpdate = true; field.cards.fade.needsUpdate = true;
   });
 

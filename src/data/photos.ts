@@ -1,12 +1,10 @@
 /* PHOTOS: the replaceable images of Chapter 01. Edit this file only to change photographs and captions; the
    interaction code reads it as it is.
 
-   To use your own photographs: put the image files in public/assets/images/ and change `src` below (the path starts
-   at /assets/images/). JPG or WebP, about 1200 px on the long side is plenty. Titles, dates and descriptions are
-   optional; leave a field out (or empty) and it isn't shown.
-
-   Everything here is a PLACEHOLDER until Butch supplies the real photographs: the images say so on their face, and
-   nothing in the captions describes a real memory. */
+   To add or change photographs: put the image files in public/assets/images/ and change `src` below (the path starts
+   at /assets/images/). JPG or WebP, about 1200–1600 px on the long side is plenty; strip location data first.
+   Titles, dates and descriptions are optional; leave a field out (or empty) and it isn't shown. The captions below
+   only name what each picture shows: the stories behind them are Butch's to write. */
 
 export interface Photo {
   src: string;
@@ -16,21 +14,30 @@ export interface Photo {
   placeholder?: boolean;      // true while the image is a stand-in (shown as such in the panel)
 }
 
-/** the photo wall in house A: "Fragments of My Journey". Add or remove entries freely; the wall shows up to six. */
+/** the photo wall in house A: "Fragments of My Journey". Add or remove entries freely; the wall shows up to six
+ *  (four or fewer hang as a loose row of larger frames, five or six as a grid). */
 export const COLLAGE: Photo[] = [
-  { src: '/assets/images/collage-1-placeholder.jpg', title: 'Photo 1', date: '', description: 'Placeholder: add a photograph and a few words about it.', placeholder: true },
-  { src: '/assets/images/collage-2-placeholder.jpg', title: 'Photo 2', date: '', description: 'Placeholder: add a photograph and a few words about it.', placeholder: true },
-  { src: '/assets/images/collage-3-placeholder.jpg', title: 'Photo 3', date: '', description: 'Placeholder: add a photograph and a few words about it.', placeholder: true },
-  { src: '/assets/images/collage-4-placeholder.jpg', title: 'Photo 4', date: '', description: 'Placeholder: add a photograph and a few words about it.', placeholder: true },
-  { src: '/assets/images/collage-5-placeholder.jpg', title: 'Photo 5', date: '', description: 'Placeholder: add a photograph and a few words about it.', placeholder: true },
-  { src: '/assets/images/collage-6-placeholder.jpg', title: 'Photo 6', date: '', description: 'Placeholder: add a photograph and a few words about it.', placeholder: true },
+  { src: '/assets/images/journey-studio-portrait.jpg', title: 'Studio portrait' },
+  { src: '/assets/images/journey-outdoor-portrait.jpg', title: 'Outdoors' },
+  { src: '/assets/images/journey-at-work.jpg', title: 'At the desk' },
+  { src: '/assets/images/journey-21st-birthday.jpg', title: 'Turning 21' },
 ];
 
-/** K9. Replace `image` with the real photograph (e.g. /assets/images/k9.jpg) and set `placeholder: false`. */
+/** the photographs that hang on the wall (the gallery shows the same ones) */
+export const wallPhotos = () => COLLAGE.slice(0, 6);
+
+/** K9, Butch's dog (the 3D dog in the front yard is coloured to match). */
 export const K9 = {
   name: 'K9',
   birthYear: 2020,
-  image: '/assets/images/k9-photo-placeholder.jpg',
+  image: '/assets/images/k9.jpg',
   caption: 'A loyal companion since 2020.',
-  placeholder: true,
+  placeholder: false,
+};
+
+/** Butch's cat, a ginger tabby (the 3D cat in the sungka shelter is coloured to match). An empty `image` shows the
+ *  panel as text only. */
+export const CAT = {
+  image: '/assets/images/my-cat.jpg' as string,
+  caption: '',
 };

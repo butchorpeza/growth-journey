@@ -18,6 +18,7 @@ import { GROUPS } from '../../physics/CollisionLayers';
 import { playerState } from '../../player/playerState';
 import { ignoreRaycast } from '../../rendering/bvh';
 import { applyWeather } from '../../rendering/weather';
+import { HOUSE_SETS, houseTextureUrls } from './houseA';
 import { SURVIVAL_BASE } from './layout';
 
 export type Lamp = [number, number, number, number];   // x, ground y, z, yaw (towards the path)
@@ -39,7 +40,10 @@ const SODIUM = new Color('#ffb06a');
 const BULB_MAT = new MeshBasicMaterial({ color: new Color('#ffb46a').multiplyScalar(30), toneMapped: false, fog: false });
 
 export function Streetlights({ lamps, strength }: { lamps: Lamp[]; strength: number }) {
-  const tex = useLoader(TextureLoader, ['concrete', 'iron'].flatMap((k) => [`${SURVIVAL_BASE}/housea/${k}_diff.webp`, `${SURVIVAL_BASE}/housea/${k}_nor.webp`, `${SURVIVAL_BASE}/housea/${k}_rough.webp`]));
+  // House A's own texture objects (the same URL list hits the same loader cache entry): the concrete and iron sets
+  // are loaded, decoded and uploaded to the GPU once instead of twice, with identical sampling settings
+  const houseTex = useLoader(TextureLoader, houseTextureUrls(SURVIVAL_BASE));
+  const tex = useMemo(() => (['concrete', 'iron'] as const).flatMap((k) => houseTex.slice(HOUSE_SETS.indexOf(k) * 3, HOUSE_SETS.indexOf(k) * 3 + 3)), [houseTex]);
 
   // ---- the lamps' geometry, one instanced mesh per part
   const parts = useMemo(() => {

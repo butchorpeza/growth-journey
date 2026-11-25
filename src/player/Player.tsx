@@ -6,6 +6,7 @@ import { CapsuleCollider, RigidBody, useRapier, type RapierCollider, type Rapier
 import { useEffect, useMemo, useRef } from 'react';
 import { MathUtils, Vector3 } from 'three';
 import { getGame } from '../game/GameState';
+import { director } from '../game/director';
 import { GROUPS } from '../physics/CollisionLayers';
 import { MOVE } from './movement';
 import { input } from './PlayerInput';
@@ -56,7 +57,8 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number], spawnYaw
     }
 
     if (rail.active) return;                                     // scroll mode: the path moves the visitor
-    const active = getGame().mode === 'playing';
+    // a scripted look (game/director.ts) holds the walk for a few seconds; a hesitation slows it
+    const active = getGame().mode === 'playing' && !director.move.lock;
     const v = playerState.velocity;
 
     // view-relative wish direction (yaw only: looking up or down never slows walking)
@@ -67,7 +69,10 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number], spawnYaw
     if (active) tmp.wish.addScaledVector(tmp.fwd, input.forward).addScaledVector(tmp.right, input.right);
     const moving = tmp.wish.lengthSq() > 0.001;
     if (moving) tmp.wish.normalize();
-    const targetSpeed = moving ? (input.run ? MOVE.runSpeed : MOVE.walkSpeed) : 0;
+    // the portal's pull: every step is heavy, and walking away from it hardly gets anywhere
+    const pull = director.pull;
+    const away = moving ? Math.max(0, -(tmp.wish.x * pull.dir.x + tmp.wish.z * pull.dir.z)) : 0;
+    const targetSpeed = moving ? (input.run ? MOVE.runSpeed : MOVE.walkSpeed) * director.move.speed * (1 - 0.55 * pull.resist) * (1 - 0.8 * pull.k * away) : 0;
 
     // acceleration / deceleration on the horizontal plane (reduced in the air)
     const control = playerState.grounded ? 1 : MOVE.airControl;
@@ -87,7 +92,9 @@ export function Player({ spawn = [0, 0, 0] as [number, number, number], spawnYaw
     const fallSpeed = -v.y;
 
     // let Rapier resolve the move against the world
-    tmp.move.set(v.x * dt, v.y * dt, v.z * dt);
+    // …and it drags the body towards it, in lurches (not stored in the velocity: it stops the moment the pull does)
+    const drag = active ? pull.drag : 0;
+    tmp.move.set((v.x + pull.dir.x * drag) * dt, v.y * dt, (v.z + pull.dir.z * drag) * dt);
     c.computeColliderMovement(col, tmp.move, undefined, GROUPS.player);
     const m = c.computedMovement();
     const grounded = c.computedGrounded();

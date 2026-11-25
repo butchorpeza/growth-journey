@@ -137,12 +137,21 @@ Each chapter has a **Look** (`looks.ts`), similar to an ENB preset. It bundles s
 | Lighting | Texel-snapped sun shadows (no shimmer), PCF radius for soft overcast penumbrae, 4096² map on High. |
 | Camera | 55° cinematic lens, faint handheld drift, optional 2.39:1 letterbox (off by default: full screen; bars capped at 12% of the height each). |
 
-**Quality tiers** (tuned 2026-11-24 for integrated GPUs: the same village view went from 35 ms to 6.6 ms per frame on High; below ~45 fps the resolution and then the tier step down automatically while the window is focused):
+**Quality tiers** (tuned 2026-11-24 for integrated GPUs. Since 2026-11-25, the adaptive budget in section 10 sets resolution, MSAA, depth of field, AO sampling and shadow size within High):
 - **High:** everything above, 2× MSAA, 2048² shadows, DPR ≤ 1.5.
 - **Medium:** AO at "performance" sampling, no depth of field / light rays / flare, SMAA, 1024² shadows, DPR ≤ 1.2.
 - **Low:** no post-processing or shadows; the renderer tone-maps with ACES at the Look's exposure.
 
-The post chain is rebuilt when quality changes. n8ao's half-resolution mode isn't used, because its render targets break on three r187.
+The post chain is rebuilt when quality changes. AO runs at half resolution with depth-aware upsampling. n8ao's half-res render target breaks on three r187, so `rendering/n8aoHalfRes.ts` replaces it with a plain two-output target.
+
+**Performance engineering** (2026-11-25, details and measurements in `docs/PERFORMANCE_AUDIT.md`):
+- `lightRange.ts`: point lights skip the pixels they can't reach.
+- `instanceCulling.ts`: per-instance frustum culling of instanced vegetation.
+- `warmup.ts`: every shader is compiled behind the start screen, and rendering pauses there afterwards.
+- `chapters/survival/preload.ts`: all chapter assets are requested in parallel.
+- BVH ray-cast trees for the Sketchfab models, and time-sliced interaction occlusion rays.
+
+None of these changes the image.
 
 **Known limits.** The remaining "CG" look comes mostly from the assets: box-modelled walls with perfectly straight edges, and uniform tiling textures. Closing that gap needs photoscanned or hand-modelled hero buildings (see the roadmap), not more post-processing. Screen-space GI and motion blur are not included. **Ray tracing / DLSS:** browsers expose neither hardware ray tracing nor NVIDIA DLSS (DLSS is a native DirectX/Vulkan SDK for RTX GPUs), so the realistic browser equivalents are screen-space effects (AO, reflections, GI) and, for still images, a progressive path tracer (e.g. three-gpu-pathtracer) as a "photo mode".
 
@@ -153,12 +162,47 @@ One chapter is mounted at a time. A `ChapterManager` will:
 2. Swap scenes under a cinematic transition (fade + camera rail + fog blend).
 3. Dispose the previous chapter's geometries, materials and textures, and clear its GLTF cache entries.
 
-## 10. Device tiers
+## 10. Device tiers and adaptive quality
 
-`utils/webgl.ts` decides whether the 3D journey is offered at all ("off" means the HTML website only). Inside the game the
-graphics setting picks **High / Medium / Low** (see section 8), and `PerformanceMonitor` steps resolution and then
-the tier down automatically when the frame rate stays below ~45 fps. Touch-only devices currently get the website plus a
-note. Touch move and look controls are planned for Phase 6.
+`utils/webgl.ts` decides whether the 3D journey is offered at all ("off" means the HTML website only).
+
+Inside the game, `rendering/adaptive.ts` runs a dynamic-quality ladder, like a console game's dynamic resolution. Each step trades the least visible thing for the most time.
+
+| Step | Render scale | MSAA | Depth of field | AO | Shadows | Ground cover |
+|---|---|---|---|---|---|---|
+| ultra | 2× | 4× | on | 16 samples | 2048² | full |
+| high | 1.5× | 4× | on | 16 samples | 2048² | full |
+| balanced | 1.25× | 2× | on | 16 samples | 2048² | full |
+| smooth | 1× | 2× | off | 16 samples | 2048² | full |
+| fast | 1× | none | off | 8 samples | 1024² | full |
+| faster | 0.8× | none | off | 8 samples | 1024² | full |
+| lite | 0.75× | none | off | off | 1024² | half |
+
+**How the step is chosen:**
+- **First guess:** from the GPU (`WEBGL_debug_renderer_info`) and whether the device is a phone or tablet. Base Apple M-series and integrated GPUs start at "fast"; phones and tablets at "faster"; Pro/Max/discrete GPUs at "high".
+- **Governor:** it times real frames while the visitor plays. It steps down after about 1.5 s averaging slower than about 45 fps, and back up after about 8 s at a steady 60 fps. A step that proved too slow twice is not retried.
+- **Pinning:** `?quality=N` pins a step for testing.
+
+**Measured on a base Apple M2 at a full-screen 1470×830 window:**
+
+| Step | Frame time |
+|---|---|
+| ultra | ~94 ms |
+| balanced | ~45 ms |
+| smooth | ~33 ms |
+| fast | ~29 ms |
+| faster | ~23.5 ms |
+| lite | ~16 ms (60 fps) |
+
+**What doesn't change:** lighting, materials, colour grade, fog and rain are the same on every step. The pause menu's Graphics choice is gone; quality is always High, and the budget adapts within it.
+
+**WebGPU was assessed and not adopted.** three.js's WebGPURenderer can't run:
+- the scene's GLSL shader patches (height fog, weather, wind, terrain blend, LOD dissolve, light range);
+- the `postprocessing` and n8ao passes.
+
+Moving would mean rewriting all of them in TSL. On Macs, WebGL and WebGPU both run on Metal, so a scene limited by per-pixel work gains little.
+
+Touch-only devices currently get the website plus a note. Touch move and look controls are planned for Phase 6.
 
 ## 11. Verified controller behaviour (2026-11-24)
 

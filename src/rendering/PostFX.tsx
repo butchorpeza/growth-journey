@@ -3,25 +3,33 @@
      → sun light rays (god rays through clouds, roofs, poles and trees) → bloom (HDR) → sun lens flare
      → exposure + white balance → tone mapping (AgX / ACES / Neutral)
      → film grade (lift/gamma/gain, contrast, saturation, split toning) → chromatic aberration → vignette → grain
-   Quality: high = everything, AO at 'low' sampling, 2× MSAA, light rays at 40% resolution; medium = AO at
-   'performance' sampling, no DOF / light rays / flare, lighter bloom, SMAA instead of MSAA (n8ao's half-resolution mode is not used: its render targets break on three.js
-   r187); low = no post-processing (the renderer tone-maps directly, see GameCanvas).
+   Quality: high = everything, AO at 'low' sampling, 4× MSAA, light rays at 40% resolution; medium = AO at
+   'performance' sampling, no DOF / light rays / flare, lighter bloom, SMAA instead of MSAA; low = no
+   post-processing (the renderer tone-maps directly, see GameCanvas).
+   AO is computed at half resolution with depth-aware upsampling (n8aoHalfRes.ts makes that mode work on three
+   r187): 3–7 ms a frame cheaper at 1080p, a mean difference of 0.3–0.4/255 from full resolution.
    Reduced motion turns off the animated grain, the chromatic fringe and the flare's shimmer. */
 import { useFrame, useThree } from '@react-three/fiber';
 import { Bloom, ChromaticAberration, EffectComposer, GodRays, LensFlareEffect, N8AO, Noise, SMAA, ToneMapping, Vignette } from '@react-three/postprocessing';
-import { BlendFunction, DepthOfFieldEffect, ToneMappingMode } from 'postprocessing';
+import { BlendFunction, CopyPass, DepthOfFieldEffect, SMAAPreset, ToneMappingMode, type EffectComposer as Composer } from 'postprocessing';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Color, MathUtils, Raycaster, Vector2, Vector3, type Mesh } from 'three';
 import { focus } from './focus';
 import { ExposureBalanceEffect, FilmGradeEffect } from './grading';
+import type { Budget } from './adaptive';
 import type { Look } from './looks';
+import { warmTargets } from './warmup';
+import { director } from '../game/director';
+import { patchN8aoHalfRes } from './n8aoHalfRes';
+
+patchN8aoHalfRes();
 
 const TONE: Record<Look['post']['toneMapping'], ToneMappingMode> = {
   aces: ToneMappingMode.ACES_FILMIC, agx: ToneMappingMode.AGX, neutral: ToneMappingMode.NEUTRAL,
 };
 const SUN_DISTANCE = 450;   // m: the sun disc sits this far along the sun direction (inside the camera's far plane)
 
-export function PostFX({ look, quality, reducedMotion }: { look: Look; quality: 'high' | 'medium'; reducedMotion: boolean }) {
+export function PostFX({ look, quality, budget, reducedMotion }: { look: Look; quality: 'high' | 'medium'; budget: Budget; reducedMotion: boolean }) {
   const p = look.post;
   const high = quality === 'high';
   const camera = useThree((s) => s.camera), scene = useThree((s) => s.scene), size = useThree((s) => s.size);
@@ -48,11 +56,23 @@ export function PostFX({ look, quality, reducedMotion }: { look: Look; quality: 
     colorGain: new Color(26, 23, 19), opacity: 1,   // 1 = hidden in this shader (see useFrame)
   }), []);
   useEffect(() => () => flare.dispose(), [flare]);
+  useEffect(() => () => { warmTargets.main = null; }, []);
   const occlusion = useMemo(() => { const r = new Raycaster(); r.far = 300; (r as Raycaster & { firstHitOnly?: boolean }).firstHitOnly = true; return r; }, []);
   const tmp = useMemo(() => ({ proj: new Vector3(), view: new Vector3() }), []);
   const visible = useRef(0), frame = useRef(0), flareStrength = useRef(0);
+  const composer = useRef<Composer>(null);
 
+  const vignette = useRef<{ darkness: number } | null>(null), chroma = useRef<{ offset: Vector2 } | null>(null);
   useFrame((_, dt) => {
+    // the story's unease (Cinematics.tsx): a darker vignette and a touch of colour fringe, eased in and out
+    if (vignette.current) vignette.current.darkness = p.vignette.darkness + director.fx.vignette;
+    if (chroma.current) chroma.current.offset.set(p.chromatic + director.fx.aberration, (p.chromatic + director.fx.aberration) * 0.6);
+    // @react-three/postprocessing appends a CopyPass whenever N8AO is used: the last effect pass renders into a 4×
+    // multisampled buffer that is then resolved and copied to the screen unchanged. Without it the effect pass
+    // draws straight to the screen (same image to within 1/255 rounding; ~1.5 ms a frame at 1080p).
+    const c = composer.current, last = c?.passes[c.passes.length - 1];
+    if (c && last instanceof CopyPass && c.passes.length > 1) c.removePass(last);
+    if (c) warmTargets.main = c.inputBuffer;                 // the shader warm-up draws into the same buffer (warmup.ts)
     if (high) {
       dof.cocMaterial.focusDistance = focus.distance;
       dof.cocMaterial.focusRange = Math.max(10, focus.distance * 3);   // a gentle falloff: the distance stays readable
@@ -94,10 +114,10 @@ export function PostFX({ look, quality, reducedMotion }: { look: Look; quality: 
           <meshBasicMaterial color={sunHdr} fog={false} toneMapped={false} />
         </mesh>
       )}
-      <EffectComposer multisampling={high ? 4 : 0} enableNormalPass={false}>
-        <N8AO aoRadius={p.ao.radius} intensity={p.ao.intensity} distanceFalloff={p.ao.falloff}
-          quality={high ? 'low' : 'performance'} halfRes={false} color="black" />
-        {high ? <primitive object={dof} /> : <></>}
+      <EffectComposer ref={composer} multisampling={high ? budget.msaa : 0} enableNormalPass={false}>
+        <N8AO enabled={budget.ao !== 'off'} aoRadius={p.ao.radius} intensity={p.ao.intensity} distanceFalloff={p.ao.falloff}
+          quality={high && budget.ao !== 'off' ? budget.ao : 'performance'} halfRes depthAwareUpsampling color="black" />
+        {high && budget.dof ? <primitive object={dof} /> : <></>}
         {high && sun && fx.rays > 0 ? (
           <GodRays sun={sun} density={0.94} decay={0.92} weight={0.32 * fx.rays} exposure={0.42 * fx.rays} samples={30} clampMax={1} blur resolutionScale={0.4} />
         ) : <></>}
@@ -107,10 +127,12 @@ export function PostFX({ look, quality, reducedMotion }: { look: Look; quality: 
         <primitive object={exposure} />
         <ToneMapping mode={TONE[p.toneMapping]} />
         <primitive object={grade} />
-        {!reducedMotion && p.chromatic > 0 ? <ChromaticAberration offset={fringe} radialModulation modulationOffset={0.35} /> : <></>}
-        <Vignette offset={p.vignette.offset} darkness={p.vignette.darkness} />
+        {!reducedMotion ? <ChromaticAberration ref={chroma as never} offset={fringe} radialModulation modulationOffset={0.35} /> : <></>}
+        <Vignette ref={vignette as never} offset={p.vignette.offset} darkness={p.vignette.darkness} />
         {!reducedMotion && p.grain > 0 ? <Noise premultiply blendFunction={BlendFunction.ADD} opacity={p.grain} /> : <></>}
-        {high ? <></> : <SMAA />}
+        {/* edge anti-aliasing wherever there is no MSAA (Medium, and the adaptive budget's faster steps): without it the
+            door frames, wall corners and eaves crawl with the camera's slightest movement */}
+        {!high || budget.msaa === 0 ? <SMAA preset={SMAAPreset.HIGH} /> : <></>}
       </EffectComposer>
     </>
   );

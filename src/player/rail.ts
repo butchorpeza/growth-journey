@@ -8,11 +8,14 @@ export interface RailWaypoint {
   at: [number, number];
   /** what the camera looks at from here (world x, y, z) */
   look: [number, number, number];
+  /** the floor height here when it isn't the highest surface below 2.6 m (a cellar under the ground) */
+  floor?: number;
 }
 
 export const rail = {
   active: false,
   s: 0, target: 0, length: 1,     // metres along the path
+  cap: Infinity,                  // metres: scrolling stops here while a scene holds the visitor (the pursuit)
   baseYaw: 0, basePitch: 0,       // the composed angle from the path
   offsetYaw: 0, offsetPitch: 0,   // the visitor's glance
 };

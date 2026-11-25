@@ -11,7 +11,7 @@ import { useGLTF } from '@react-three/drei';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { CuboidCollider, RigidBody, TrimeshCollider, type RapierRigidBody } from '@react-three/rapier';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BufferAttribute, FileLoader, Group, type PointLight, Matrix4, MeshBasicMaterial, Quaternion, TextureLoader, Vector3, type Mesh, type Object3D, type Texture } from 'three';
+import { BufferAttribute, Euler, FileLoader, Group, type PointLight, Matrix4, MeshBasicMaterial, Quaternion, Raycaster, TextureLoader, Vector3, type Material, type Mesh, type Object3D, type Texture } from 'three';
 import { useGame } from '../../game/GameState';
 import { Interactable } from '../../interactions/Interactable';
 import { GROUPS } from '../../physics/CollisionLayers';
@@ -29,18 +29,24 @@ import { Flora } from './Flora';
 import { Animals } from './Animals';
 import { Streetlights } from './Streetlights';
 import { Trail } from './Trail';
-import { Discoveries, LampGlow, lampBoost, lampFx, nowS, openDiscovery } from './Discoveries';
+import { Cinematics } from './Cinematics';
+import { PortalPull } from './PortalPull';
+import { Discoveries, gamesSpot, LampGlow, lampBoost, lampFx, nowS, openDiscovery } from './Discoveries';
 import { Houses, usePlacedHouses } from './Houses';
 import { buildHouseA, buildHouseADoor, createHouseMaterials, houseTextureUrls } from './houseA';
 import { Portal, usePortalFrame } from './Portal';
 import { HouseLights, usePlacedVehicles, Vehicles } from './Props';
 import { scatter } from './scatter';
 import { createTerrainMaterial, terrainTextureUrls } from './terrainMaterial';
+import { preloadSurvival } from './preload';
+
+// start every download of the chapter together, as soon as its code loads (preload.ts)
+preloadSurvival();
 
 /** hit volume for the interaction raycast: never drawn, but still hit by rays */
 const HIT = new MeshBasicMaterial({ colorWrite: false, depthWrite: false });
 
-interface Prepared { terrain: Mesh | null; door: Group | null; verts: Float32Array; index: Uint32Array }
+interface Prepared { terrain: Mesh | null; door: Group | null; verts: Float32Array; index: Uint32Array; sungkaAt: [number, number, number] | null }
 
 /** one-time preparation of the cached GLTF scene (idempotent: the result is stored on the scene) */
 function prepare(world: Object3D, layout: SurvivalLayout, terrainMat: Mesh['material'], houseTex: Texture[]): Prepared {
@@ -100,11 +106,49 @@ function prepare(world: Object3D, layout: SurvivalLayout, terrainMat: Mesh['mate
   // weather (cloud shadows, wetness, puddles on the terrain) on every lit surface, after the terrain material is set
   const lit = (o: Object3D) => { const m = o as Mesh; if (m.isMesh) (Array.isArray(m.material) ? m.material : [m.material]).forEach((mm) => applyWeather(mm, { puddles: o === t, matte: mm.name === 'houseA_thatch' })); };
   world.traverse(lit); door?.traverse(lit);
+  const sungkaAt = placeSungka(world);
   buildBoundsTrees(world);                                 // fast look-at / autofocus raycasts
   if (door) buildBoundsTrees(door);
-  const prepared = { terrain: t, door, verts, index };
+  const prepared = { terrain: t, door, verts, index, sungkaAt };
   world.userData.prepared = prepared;
   return prepared;
+}
+
+/** the sungka board lies on the shelter's bench seat, lengthwise, towards one end (the cat takes the other). In the
+ *  Blender build it floated crosswise at 0.85 m, the height of the table the bench replaced, so from above it read
+ *  as a board standing on end against the backrest. The bench's own angle and its probed seat height place it, so it
+ *  stays right if the bench moves. Returns where its interaction point goes (just above the board). */
+function placeSungka(world: Object3D): [number, number, number] | null {
+  let bench: Mesh | null = null, board: Mesh | null = null;
+  world.traverse((o) => {
+    const m = o as Mesh, name = (m.material as Material | undefined)?.name ?? '';
+    if (!m.isMesh) return;
+    if (name === 'painted_wooden_bench') bench = m;
+    if (name === 'sungka_board') board = m;
+  });
+  if (!bench || !board) return null;
+  const b = bench as Mesh, k = board as Mesh;
+  world.updateMatrixWorld(true);
+  const benchPos = b.getWorldPosition(new Vector3()), benchYaw = new Euler().setFromQuaternion(b.getWorldQuaternion(new Quaternion()), 'YXZ').y;
+  const along = new Vector3(Math.cos(benchYaw), 0, -Math.sin(benchYaw));       // the bench's length (its local x)
+  const forward = new Vector3(Math.sin(benchYaw), 0, Math.cos(benchYaw));       // from the backrest to the front edge
+  const at = benchPos.clone().addScaledVector(forward, 0.08).addScaledVector(along, 0.22);
+  const ray = new Raycaster(new Vector3(at.x, benchPos.y + 2, at.z), new Vector3(0, -1, 0), 0, 4);
+  const seat = ray.intersectObject(b, false)[0]?.point.y;
+  if (seat === undefined) return null;
+  k.geometry.computeBoundingBox();
+  const scale = k.getWorldScale(new Vector3()), thick = (k.geometry.boundingBox!.max.y - k.geometry.boundingBox!.min.y) * scale.y;
+  at.y = seat + thick / 2 + 0.002;
+  // its length (local z) along the bench's: a quarter turn from the bench's own angle
+  const worldMatrix = new Matrix4().compose(at, new Quaternion().setFromEuler(new Euler(0, benchYaw + Math.PI / 2, 0)), scale);
+  const local = new Matrix4().copy(k.parent!.matrixWorld).invert().multiply(worldMatrix);
+  local.decompose(k.position, k.quaternion, k.scale);
+  k.updateMatrixWorld(true);
+  // Butch never played sungka: the board stays out of sight, and its place on the bench is the games-and-drawings
+  // corner (Discoveries.tsx GamesCorner), on the seat top, along the bench
+  k.visible = false;
+  gamesSpot.seat = at.y - thick / 2; gamesSpot.at = [at.x, at.y - thick / 2, at.z]; gamesSpot.yaw = benchYaw;
+  return [at.x, at.y + 0.09, at.z];
 }
 
 export function SurvivalChapter() {
@@ -131,6 +175,9 @@ export function SurvivalChapter() {
   const houses = usePlacedHouses(prepared.terrain);
   const vehicles = usePlacedVehicles(prepared.terrain);
   const portalFrame = usePortalFrame(prepared.terrain);
+  // ray-cast trees for the detailed Sketchfab models too (interaction occlusion, autofocus): exactly the same hits,
+  // but a ray past the motorcycle cost ~4 ms against its 36k triangles one by one, and now costs microseconds
+  useMemo(() => { for (const h of [...houses, ...vehicles, portalFrame]) buildBoundsTrees(h.object); }, [houses, vehicles, portalFrame]);
   const scatterLayout = useMemo(() => ({ ...layout, colliders: [...layout.colliders, ...houses.map((h) => h.box), ...vehicles.map((v) => v.box), portalFrame.box] }), [layout, houses, vehicles, portalFrame]);
   // banana groves + extra grass, placed on the terrain (needs the terrain's BVH from prepare())
   const extra = useMemo(() => (prepared.terrain ? scatter(prepared.terrain, scatterLayout) : { bananasNear: [], bananasFar: [], grass: {}, flora: { coconut: [], mango: [], raintree: [], bamboo: [], taro: [], elephant: [], fern: [] }, lamps: [] as [number, number, number, number][] }), [prepared, scatterLayout]);
@@ -157,7 +204,10 @@ export function SurvivalChapter() {
 
       {/* the photo wall (Discoveries) replaces the cabinet photograph's interaction; the oil lamp swells when examined */}
       {layout.interactables.filter((it) => it.narrativeId && it.id !== 'survival-photograph').map((it) => (
-        <Interactable key={it.id} id={it.id} label={it.label} verb={it.verb} narrativeId={it.narrativeId} position={it.p}
+        <Interactable key={it.id} id={it.id} label={it.label} verb={it.verb} narrativeId={it.narrativeId}
+          position={it.id === 'survival-sungka' && prepared.sungkaAt ? prepared.sungkaAt : it.p}
+          {...(it.id === 'survival-sungka' ? { id: 'survival-games', narrativeId: 'survival-games', label: 'the games and drawings', verb: 'look at' } : {})}
+          reach={it.id === 'survival-sungka' ? 4.5 : undefined}
           onInteract={it.id === 'survival-lamp' ? () => { lampFx.at = nowS(); openDiscovery('survival-lamp'); } : undefined}>
           <mesh material={HIT}><boxGeometry args={it.id === 'survival-sungka' ? [0.8, 0.35, 0.45] : [0.45, 0.5, 0.45]} /></mesh>
         </Interactable>
@@ -177,6 +227,8 @@ export function SurvivalChapter() {
       <Portal frame={portalFrame} />
       <Discoveries vehicles={vehicles} portal={portalFrame} />
       <Trail world={world} />
+      <Cinematics />
+      <PortalPull />
       {(look.weather?.rain ?? 0) > 0 && <Rain intensity={look.weather!.rain} quality={quality} />}
       <RoofRain heightAt={shelter.heightAt} active={(look.weather?.rain ?? 0) > 0} />
     </group>
@@ -209,7 +261,7 @@ function Door({ layout, parts }: { layout: SurvivalLayout; parts: Group }) {
     <>
       <group ref={pivot} position={d.hinge}>
         <primitive object={parts} />
-        <Interactable id={d.id} label="the door" verb={open ? 'close' : 'open'} onInteract={toggle} position={centre}>
+        <Interactable id={d.id} label="the door" verb={open ? 'close' : 'open'} onInteract={toggle} position={centre} featured={false}>
           <mesh material={HIT}><boxGeometry args={[d.width, d.height, 0.16]} /></mesh>
         </Interactable>
       </group>
